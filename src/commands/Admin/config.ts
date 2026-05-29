@@ -1,0 +1,268 @@
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, ChannelType } from 'discord.js';
+import type { Command } from '../../lib/types';
+import { prisma } from '../../lib/prisma';
+
+const command: Command = {
+	data: new SlashCommandBuilder()
+		.setName('config')
+		.setDescription('Configure server settings.')
+		.addSubcommandGroup((group) =>
+			group
+				.setName('no-xp-role')
+				.setDescription('Manage roles that do not earn XP.')
+				.addSubcommand((sub) =>
+					sub
+						.setName('add')
+						.setDescription('Add a no-XP role.')
+						.addRoleOption((opt) => opt.setName('role').setDescription('Role').setRequired(true)),
+				)
+				.addSubcommand((sub) =>
+					sub
+						.setName('remove')
+						.setDescription('Remove a no-XP role.')
+						.addRoleOption((opt) => opt.setName('role').setDescription('Role').setRequired(true)),
+				),
+		)
+		.addSubcommandGroup((group) =>
+			group
+				.setName('no-xp-channel')
+				.setDescription('Manage channels where XP is not earned.')
+				.addSubcommand((sub) =>
+					sub
+						.setName('add')
+						.setDescription('Add a no-XP channel.')
+						.addChannelOption((opt) =>
+							opt.setName('channel').setDescription('Channel').addChannelTypes(ChannelType.GuildText).setRequired(true),
+						),
+				)
+				.addSubcommand((sub) =>
+					sub
+						.setName('remove')
+						.setDescription('Remove a no-XP channel.')
+						.addChannelOption((opt) =>
+							opt.setName('channel').setDescription('Channel').addChannelTypes(ChannelType.GuildText).setRequired(true),
+						),
+				),
+		)
+		.addSubcommandGroup((group) =>
+			group
+				.setName('forum')
+				.setDescription('Manage forum channels to clean up posts from when a member leaves.')
+				.addSubcommand((sub) =>
+					sub
+						.setName('add')
+						.setDescription('Add a forum channel.')
+						.addChannelOption((opt) =>
+							opt
+								.setName('channel')
+								.setDescription('Forum channel')
+								.addChannelTypes(ChannelType.GuildForum)
+								.setRequired(true),
+						),
+				)
+				.addSubcommand((sub) =>
+					sub
+						.setName('remove')
+						.setDescription('Remove a forum channel.')
+						.addChannelOption((opt) =>
+							opt
+								.setName('channel')
+								.setDescription('Forum channel')
+								.addChannelTypes(ChannelType.GuildForum)
+								.setRequired(true),
+						),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('mod-log')
+				.setDescription('Set or clear the mod log channel.')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear).')
+						.addChannelTypes(ChannelType.GuildText)
+						.setRequired(false),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('welcome-channel')
+				.setDescription('Set or clear the welcome channel.')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear).')
+						.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+						.setRequired(false),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('goodbye-channel')
+				.setDescription('Set or clear the goodbye channel.')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear).')
+						.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+						.setRequired(false),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('intro-channel')
+				.setDescription('Set or clear the introduction channel. Posts here are deleted when a member leaves.')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear). Can be a text or forum channel.')
+						.addChannelTypes(ChannelType.GuildText, ChannelType.GuildForum)
+						.setRequired(false),
+				),
+		)
+		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+	async execute(interaction: ChatInputCommandInteraction) {
+		await interaction.deferReply({ ephemeral: true });
+
+		const guildId = interaction.guildId!;
+		const group = interaction.options.getSubcommandGroup();
+		const sub = interaction.options.getSubcommand();
+
+		if (group === 'no-xp-role') {
+			const role = interaction.options.getRole('role', true);
+
+			if (sub === 'add') {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (current?.noXpRoles.includes(role.id)) {
+					await interaction.editReply(`${role} is already a no-XP role.`);
+					return;
+				}
+				await prisma.guildConfig.upsert({
+					where: { guildId },
+					create: { guildId, noXpRoles: [role.id], noXpChannels: [] },
+					update: { noXpRoles: { push: role.id } },
+				});
+				await interaction.editReply(`${role} added to no-XP roles.`);
+			} else {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (!current?.noXpRoles.includes(role.id)) {
+					await interaction.editReply(`${role} is not a no-XP role.`);
+					return;
+				}
+				await prisma.guildConfig.update({
+					where: { guildId },
+					data: { noXpRoles: current.noXpRoles.filter((id) => id !== role.id) },
+				});
+				await interaction.editReply(`${role} removed from no-XP roles.`);
+			}
+			return;
+		}
+
+		if (group === 'no-xp-channel') {
+			const channel = interaction.options.getChannel('channel', true);
+
+			if (sub === 'add') {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (current?.noXpChannels.includes(channel.id)) {
+					await interaction.editReply(`${channel} is already a no-XP channel.`);
+					return;
+				}
+				await prisma.guildConfig.upsert({
+					where: { guildId },
+					create: { guildId, noXpRoles: [], noXpChannels: [channel.id] },
+					update: { noXpChannels: { push: channel.id } },
+				});
+				await interaction.editReply(`${channel} added to no-XP channels.`);
+			} else {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (!current?.noXpChannels.includes(channel.id)) {
+					await interaction.editReply(`${channel} is not a no-XP channel.`);
+					return;
+				}
+				await prisma.guildConfig.update({
+					where: { guildId },
+					data: { noXpChannels: current.noXpChannels.filter((id) => id !== channel.id) },
+				});
+				await interaction.editReply(`${channel} removed from no-XP channels.`);
+			}
+			return;
+		}
+
+		if (group === 'forum') {
+			const channel = interaction.options.getChannel('channel', true);
+
+			if (sub === 'add') {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (current?.forumChannels.includes(channel.id)) {
+					await interaction.editReply(`${channel} is already a managed forum channel.`);
+					return;
+				}
+				await prisma.guildConfig.upsert({
+					where: { guildId },
+					create: { guildId, noXpRoles: [], noXpChannels: [], forumChannels: [channel.id] },
+					update: { forumChannels: { push: channel.id } },
+				});
+				await interaction.editReply(`${channel} added to managed forum channels.`);
+			} else {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (!current?.forumChannels.includes(channel.id)) {
+					await interaction.editReply(`${channel} is not a managed forum channel.`);
+					return;
+				}
+				await prisma.guildConfig.update({
+					where: { guildId },
+					data: { forumChannels: current.forumChannels.filter((id) => id !== channel.id) },
+				});
+				await interaction.editReply(`${channel} removed from managed forum channels.`);
+			}
+			return;
+		}
+
+		if (sub === 'mod-log') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], modLogChannel: channel?.id ?? null },
+				update: { modLogChannel: channel?.id ?? null },
+			});
+			await interaction.editReply(channel ? `Mod log set to ${channel}.` : 'Mod log channel cleared.');
+			return;
+		}
+
+		if (sub === 'welcome-channel') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], welcomeChannel: channel?.id ?? null },
+				update: { welcomeChannel: channel?.id ?? null },
+			});
+			await interaction.editReply(channel ? `Welcome channel set to ${channel}.` : 'Welcome channel cleared.');
+			return;
+		}
+
+		if (sub === 'goodbye-channel') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], goodbyeChannel: channel?.id ?? null },
+				update: { goodbyeChannel: channel?.id ?? null },
+			});
+			await interaction.editReply(channel ? `Goodbye channel set to ${channel}.` : 'Goodbye channel cleared.');
+			return;
+		}
+
+		if (sub === 'intro-channel') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], introChannel: channel?.id ?? null },
+				update: { introChannel: channel?.id ?? null },
+			});
+			await interaction.editReply(channel ? `Introduction channel set to ${channel}.` : 'Introduction channel cleared.');
+		}
+	},
+};
+
+export default command;

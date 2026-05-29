@@ -1,0 +1,163 @@
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, GuildMember } from 'discord.js';
+import type { Command } from '../../lib/types';
+import { resolveReason, buildModEmbed, sendModLog, sendPunishmentDM } from '../../lib/modUtils';
+import { prisma } from '../../lib/prisma';
+
+const command: Command = {
+	data: new SlashCommandBuilder()
+		.setName('warn')
+		.setDescription('Manage member warnings.')
+		.addSubcommand((sub) =>
+			sub
+				.setName('add')
+				.setDescription('Issue a warning to a member.')
+				.addUserOption((opt) => opt.setName('user').setDescription('Member to warn.').setRequired(true))
+				.addStringOption((opt) => opt.setName('reason').setDescription('Reason for the warning.').setRequired(true)),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('remove')
+				.setDescription('Remove a warning by ID.')
+				.addStringOption((opt) => opt.setName('id').setDescription('Warning ID to remove.').setRequired(true)),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('view')
+				.setDescription('View warnings for a member, or look up a specific warning by ID.')
+				.addUserOption((opt) => opt.setName('user').setDescription('Member to view warnings for.').setRequired(false))
+				.addStringOption((opt) => opt.setName('id').setDescription('Specific warning ID to look up.').setRequired(false)),
+		)
+		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
+
+	async execute(interaction: ChatInputCommandInteraction) {
+		await interaction.deferReply({ ephemeral: true });
+
+		const sub = interaction.options.getSubcommand();
+		const guildId = interaction.guildId!;
+
+		if (sub === 'add') {
+			const targetUser = interaction.options.getUser('user', true);
+			const rawReason = interaction.options.getString('reason', true);
+			const member = await interaction.guild!.members.fetch(targetUser.id).catch(() => null);
+
+			if (!member) {
+				await interaction.editReply('That user is not in this server.');
+				return;
+			}
+
+			const interactionMember = interaction.member as GuildMember;
+			if (member.roles.highest.position >= interactionMember.roles.highest.position) {
+				await interaction.editReply('You cannot warn someone with an equal or higher role.');
+				return;
+			}
+
+			const reason = await resolveReason(guildId, 'warn', rawReason);
+
+			const warning = await prisma.warning.create({
+				data: { userId: targetUser.id, guildId, reason, moderatorId: interaction.user.id },
+			});
+
+			const warningCount = await prisma.warning.count({ where: { userId: targetUser.id, guildId } });
+
+			const dmSent = await sendPunishmentDM(targetUser, {
+				action: 'warn',
+				guildName: interaction.guild!.name,
+				reason,
+				warningId: warning.id,
+			});
+
+			const embed = buildModEmbed({
+				action: 'Member Warned',
+				target: targetUser,
+				moderator: interaction.user,
+				reason,
+				color: 0xffc067,
+			});
+
+			embed.addFields(
+				{ name: 'Warning ID', value: `\`${warning.id}\``, inline: true },
+				{ name: 'Total Warnings', value: `${warningCount}`, inline: true },
+			);
+			if (!dmSent) embed.setFooter({ text: 'Could not send DM to the user.' });
+
+			await sendModLog(interaction.guild!, embed);
+			await interaction.editReply({ embeds: [embed] });
+			return;
+		}
+
+		if (sub === 'remove') {
+			const id = interaction.options.getString('id', true);
+			const warning = await prisma.warning.findUnique({ where: { id } });
+
+			if (!warning || warning.guildId !== guildId) {
+				await interaction.editReply('Warning not found.');
+				return;
+			}
+
+			await prisma.warning.delete({ where: { id } });
+			await interaction.editReply(`Warning \`${id}\` removed.`);
+			return;
+		}
+
+		if (sub === 'view') {
+			const targetUser = interaction.options.getUser('user');
+			const warningId = interaction.options.getString('id');
+
+			if (!targetUser && !warningId) {
+				await interaction.editReply('Provide a user or a warning ID.');
+				return;
+			}
+
+			if (warningId) {
+				const warning = await prisma.warning.findUnique({ where: { id: warningId } });
+
+				if (!warning || warning.guildId !== guildId) {
+					await interaction.editReply('Warning not found.');
+					return;
+				}
+
+				const embed = new EmbedBuilder()
+					.setTitle(`Warning \`${warning.id}\``)
+					.setColor(0xffc067)
+					.addFields(
+						{ name: 'User', value: `<@${warning.userId}>`, inline: true },
+						{ name: 'Moderator', value: `<@${warning.moderatorId}>`, inline: true },
+						{ name: 'Reason', value: warning.reason },
+					)
+					.setTimestamp(warning.createdAt);
+
+				await interaction.editReply({ embeds: [embed] });
+				return;
+			}
+
+			const warnings = await prisma.warning.findMany({
+				where: { userId: targetUser!.id, guildId },
+				orderBy: { createdAt: 'desc' },
+				take: 10,
+			});
+
+			const total = await prisma.warning.count({ where: { userId: targetUser!.id, guildId } });
+
+			const embed = new EmbedBuilder()
+				.setTitle(`Warnings — ${targetUser!.username}`)
+				.setColor(0xff6961)
+				.setFooter({ text: `${total} total warning${total !== 1 ? 's' : ''}` })
+				.setTimestamp();
+
+			if (warnings.length === 0) {
+				embed.setDescription('This member has no warnings.').setColor(0x77dd77);
+			} else {
+				for (const w of warnings) {
+					embed.addFields({
+						name: `\`${w.id}\``,
+						value: `**Reason:** ${w.reason}\n**By:** <@${w.moderatorId}> · <t:${Math.floor(w.createdAt.getTime() / 1000)}:f>`,
+					});
+				}
+			}
+
+			await interaction.editReply({ embeds: [embed] });
+		}
+	},
+};
+
+export default command;

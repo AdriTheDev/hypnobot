@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserLevel {
+  id       String @id @default(cuid())
+  userId   String
+  guildId  String
+  xp       Int    @default(0)
+  level    Int    @default(0)
+  messages Int    @default(0)
+
+  @@unique([userId, guildId])
+  @@index([guildId, xp(sort: Desc)])
+}
+
+model Warning {
+  id          String   @id @default(cuid())
+  userId      String
+  guildId     String
+  reason      String
+  moderatorId String
+  createdAt   DateTime @default(now())
+
+  @@index([userId, guildId])
+}
+
+model TempBan {
+  id          String   @id @default(cuid())
+  userId      String
+  guildId     String
+  reason      String
+  moderatorId String
+  expiresAt   DateTime
+
+  @@unique([userId, guildId])
+  @@index([expiresAt])
+}
+
+model GuildAlias {
+  id      String @id @default(cuid())
+  guildId String
+  name    String
+  value   String
+  type    String
+
+  @@unique([guildId, type, name])
+}
+
+model WelcomeMessage {
+  userId    String
+  guildId   String
+  channelId String
+  messageId String
+
+  @@id([userId, guildId])
+}
+
+model GuildConfig {
+  guildId        String   @id
+  noXpRoles      String[]
+  noXpChannels   String[]
+  modLogChannel  String?
+  welcomeChannel String?
+  goodbyeChannel String?
+  introChannel   String?
+  forumChannels  String[] @default([])
+}

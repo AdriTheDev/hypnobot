@@ -1,0 +1,56 @@
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, ChannelType, TextChannel } from 'discord.js';
+import type { Command } from '../../lib/types';
+
+async function setAllChannels(guild: ChatInputCommandInteraction['guild'], allow: boolean, reason: string): Promise<number> {
+	const channels = guild!.channels.cache.filter((c) => c.type === ChannelType.GuildText) as Map<string, TextChannel>;
+	let affected = 0;
+	for (const [, channel] of channels) {
+		await channel.permissionOverwrites
+			.edit(guild!.roles.everyone, { SendMessages: allow ? null : false }, { reason })
+			.catch(() => null);
+		affected++;
+	}
+	return affected;
+}
+
+const command: Command = {
+	data: new SlashCommandBuilder()
+		.setName('lockdown')
+		.setDescription('Lock or unlock all text channels in the server.')
+		.addSubcommand((sub) =>
+			sub
+				.setName('lock')
+				.setDescription('Lock all text channels.')
+				.addStringOption((opt) => opt.setName('reason').setDescription('Reason for the lockdown.').setRequired(true)),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('unlock')
+				.setDescription('Unlock all text channels.')
+				.addStringOption((opt) => opt.setName('reason').setDescription('Reason for lifting the lockdown.').setRequired(true)),
+		)
+		.setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
+
+	async execute(interaction: ChatInputCommandInteraction) {
+		await interaction.deferReply({ ephemeral: true });
+
+		const sub = interaction.options.getSubcommand();
+		const reason = interaction.options.getString('reason', true);
+		const locking = sub === 'lock';
+
+		await setAllChannels(interaction.guild!, !locking, reason);
+
+		const embed = new EmbedBuilder()
+			.setTitle(locking ? '🔒 Server Lockdown' : '🔓 Lockdown Lifted')
+			.setDescription(`**Reason:** ${reason}`)
+			.setColor(locking ? 0xff6961 : 0x77dd77)
+			.setFooter({
+				text: `${locking ? 'Locked' : 'Unlocked'} by ${interaction.user.tag}`,
+			})
+			.setTimestamp();
+
+		await interaction.editReply({ embeds: [embed] });
+	},
+};
+
+export default command;
