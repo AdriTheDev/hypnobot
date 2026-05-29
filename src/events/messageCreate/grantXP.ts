@@ -8,7 +8,7 @@ const XP_COOLDOWN_MS = 60_000;
 
 const event: EventFile = {
 	async execute(message: Message) {
-		if (message.author.bot || !message.guild || !message.member) return;
+		if (message.author.bot || !message.inGuild() || !message.member) return;
 
 		const userId = message.author.id;
 		const guildId = message.guild.id;
