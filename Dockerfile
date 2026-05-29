@@ -10,9 +10,9 @@ RUN npm run build
 
 FROM node:22-slim AS runner
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      fontconfig \
-      openssl \
-    && rm -rf /var/lib/apt/lists/*
+  fonts-liberation \
+  openssl \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package*.json ./
