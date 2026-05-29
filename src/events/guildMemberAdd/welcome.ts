@@ -18,7 +18,7 @@ const event: EventFile = {
 			.setThumbnail(member.user.displayAvatarURL())
 			.setColor(0xfd86f3);
 
-		const message = await channel.send({ embeds: [embed] }).catch(() => null);
+		const message = await channel.send({ content: `${member}`, embeds: [embed] }).catch(() => null);
 		if (!message) return;
 
 		await prisma.welcomeMessage.upsert({
