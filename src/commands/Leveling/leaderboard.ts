@@ -26,25 +26,35 @@ const command: Command = {
 			return;
 		}
 
-		const lines = await Promise.all(
-			top.map(async (entry, i) => {
-				let name: string;
-				try {
-					const member = await interaction.guild!.members.fetch(entry.userId);
-					name = member.displayName;
-				} catch {
-					name = `<@${entry.userId}>`;
-				}
+		// const lines = await Promise.all(
+		// 	top.map(async (entry, i) => {
+		// 		let name: string;
+		// 		try {
+		// 			const member = await interaction.guild!.members.fetch(entry.userId);
+		// 			name = member.displayName;
+		// 		} catch {
+		// 			name = `<@${entry.userId}>`;
+		// 		}
 
-				const { level, currentLevelXP, requiredXP } = resolveLevel(entry.xp);
+		// 		const { level, currentLevelXP, requiredXP } = resolveLevel(entry.xp);
+		// 		const medal = MEDALS[i] ?? `**${i + 1}.**`;
+		// 		return `${medal} ${name} - Level **${level}** · ${currentLevelXP.toLocaleString()}/${requiredXP.toLocaleString()} XP`;
+		// 	}),
+		// );
+
+		const lines = await Promise.all(
+			top.map(async (m, i) => {
+				const user = await interaction.client.users.fetch(m.userId).catch(() => null);
+				const name = user ? user : m.userId;
 				const medal = MEDALS[i] ?? `**${i + 1}.**`;
-				return `${medal} ${name} - Level **${level}** · ${currentLevelXP.toLocaleString()}/${requiredXP.toLocaleString()} XP`;
+				const { level, currentLevelXP, requiredXP } = resolveLevel(m.xp);
+				return `**${medal} ${name}** - Level ${level} (${currentLevelXP.toLocaleString()}/${requiredXP.toLocaleString()} XP)`;
 			}),
 		);
 
 		const embed = new EmbedBuilder()
 			.setTitle(`🏆 ${interaction.guild!.name} Leaderboard`)
-			.setDescription(lines.join('\n'))
+			.setDescription(lines.join('\n') || 'No one has earned any XP in this server yet!')
 			.setColor(0xfd86f3)
 			.setTimestamp()
 			.setFooter({ text: 'Top 10 members by total XP' });
