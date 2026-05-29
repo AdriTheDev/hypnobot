@@ -33,6 +33,12 @@ jobs:
             - name: Copy env file
               run: cp /opt/hypnobot/.env .env
 
+            - name: Sync database schema
+              run: |
+                  export $(grep -v '^#' /opt/hypnobot/.env | grep '^DATABASE_URL=' | xargs)
+                  npm ci
+                  npx prisma db push --skip-generate
+
             - name: Pull and restart
               run: |
                   docker compose pull
