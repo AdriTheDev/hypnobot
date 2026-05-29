@@ -10,7 +10,7 @@ export function loadEvents(client: ExtendedClient): void {
 
 	for (const eventName of eventFolders) {
 		const folderPath = join(eventsPath, eventName);
-		const files = readdirSync(folderPath).filter((f) => f.endsWith('.ts') || f.endsWith('.js'));
+		const files = readdirSync(folderPath).filter((f) => f.endsWith('.js') || (f.endsWith('.ts') && !f.endsWith('.d.ts')));
 
 		for (const file of files) {
 			const filePath = join(folderPath, file);
