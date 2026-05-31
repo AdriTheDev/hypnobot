@@ -5,7 +5,7 @@ import { sendLog } from '../../lib/logWebhook';
 
 const event: EventFile = {
 	async execute(message: Message | PartialMessage) {
-		if (!message.guild || message.author?.bot) return;
+		if (!message.guild || message.author?.bot || message.webhookId) return;
 
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: message.guild.id } });
 		if (!config?.messageLogChannel) return;
