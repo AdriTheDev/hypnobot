@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { resolveReason, buildModEmbed, sendModLog, sendPunishmentDM } from '../../lib/modUtils';
+import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
 import ms, { StringValue } from 'ms';
 
@@ -92,7 +92,7 @@ const command: Command = {
 
 		if (!dmSent) embed.setFooter({ text: 'Could not send DM to the user.' });
 
-		await sendModLog(interaction.guild!, embed);
+		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
 		await interaction.editReply({ embeds: [embed] });
 	},
 };

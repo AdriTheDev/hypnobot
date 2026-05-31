@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, Colors, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { resolveReason, buildModEmbed, sendModLog, sendPunishmentDM } from '../../lib/modUtils';
+import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM } from '../../lib/modUtils';
 import ms, { StringValue } from 'ms';
 
 const MAX_TIMEOUT_MS = 28 * 24 * 60 * 60 * 1000;
@@ -72,7 +72,7 @@ const command: Command = {
 
 		if (!dmSent) embed.setFooter({ text: 'Could not send DM to the user.' });
 
-		await sendModLog(interaction.guild!, embed);
+		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
 		await interaction.editReply({ embeds: [embed] });
 	},
 };

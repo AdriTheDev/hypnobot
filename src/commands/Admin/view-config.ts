@@ -30,6 +30,8 @@ const command: Command = {
 						`**Message Log:** ${config?.messageLogChannel ? ch(config.messageLogChannel) : none('Not set')}`,
 						`**Member Log:** ${config?.memberLogChannel ? ch(config.memberLogChannel) : none('Not set')}`,
 						`**Server Log:** ${config?.serverLogChannel ? ch(config.serverLogChannel) : none('Not set')}`,
+						`**Voice Log:** ${config?.voiceLogChannel ? ch(config.voiceLogChannel) : none('Not set')}`,
+						`**Public Mod Log:** ${config?.publicModLogChannel ? ch(config.publicModLogChannel) : none('Not set')}`,
 					].join('\n'),
 				},
 				{

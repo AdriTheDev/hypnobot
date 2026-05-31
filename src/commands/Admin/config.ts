@@ -157,6 +157,30 @@ const command: Command = {
 						.setRequired(false),
 				),
 		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('voice-log')
+				.setDescription('Set or clear the channel for voice join/leave/switch logs.')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear).')
+						.addChannelTypes(ChannelType.GuildText)
+						.setRequired(false),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('public-mod-log')
+				.setDescription('Set or clear the public moderation log channel (bans, kicks, mutes, warns).')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear).')
+						.addChannelTypes(ChannelType.GuildText)
+						.setRequired(false),
+				),
+		)
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
 	async execute(interaction: ChatInputCommandInteraction) {
@@ -330,6 +354,28 @@ const command: Command = {
 				update: { serverLogChannel: channel?.id ?? null },
 			});
 			await interaction.editReply(channel ? `Server log set to ${channel}.` : 'Server log channel cleared.');
+			return;
+		}
+
+		if (sub === 'voice-log') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], voiceLogChannel: channel?.id ?? null },
+				update: { voiceLogChannel: channel?.id ?? null },
+			});
+			await interaction.editReply(channel ? `Voice log set to ${channel}.` : 'Voice log channel cleared.');
+			return;
+		}
+
+		if (sub === 'public-mod-log') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], publicModLogChannel: channel?.id ?? null },
+				update: { publicModLogChannel: channel?.id ?? null },
+			});
+			await interaction.editReply(channel ? `Public mod log set to ${channel}.` : 'Public mod log channel cleared.');
 		}
 	},
 };

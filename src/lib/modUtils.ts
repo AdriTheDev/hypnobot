@@ -112,3 +112,21 @@ export async function sendModLog(guild: Guild, embed: EmbedBuilder): Promise<voi
 	if (!channel?.isTextBased()) return;
 	await (channel as TextChannel).send({ embeds: [embed] }).catch(() => null);
 }
+
+export async function sendPublicModLog(guild: Guild, embed: EmbedBuilder): Promise<void> {
+	const config = await prisma.guildConfig.findUnique({
+		where: { guildId: guild.id },
+	});
+	if (!config?.publicModLogChannel) return;
+	const channel = guild.channels.cache.get(config.publicModLogChannel);
+	if (!channel?.isTextBased()) return;
+
+	const data = embed.toJSON();
+	const publicEmbed = new EmbedBuilder(data).spliceFields(
+		0,
+		data.fields?.length ?? 0,
+		...(data.fields?.filter((f) => f.name !== 'Moderator') ?? []),
+	);
+
+	await (channel as TextChannel).send({ embeds: [publicEmbed] }).catch(() => null);
+}
