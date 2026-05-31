@@ -121,6 +121,42 @@ const command: Command = {
 						.setRequired(false),
 				),
 		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('message-log')
+				.setDescription('Set or clear the channel for message delete/edit logs.')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear).')
+						.addChannelTypes(ChannelType.GuildText)
+						.setRequired(false),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('member-log')
+				.setDescription('Set or clear the channel for member join/leave, nickname, and role change logs.')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear).')
+						.addChannelTypes(ChannelType.GuildText)
+						.setRequired(false),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('server-log')
+				.setDescription('Set or clear the channel for server logs (channels, roles).')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear).')
+						.addChannelTypes(ChannelType.GuildText)
+						.setRequired(false),
+				),
+		)
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
 	async execute(interaction: ChatInputCommandInteraction) {
@@ -261,6 +297,39 @@ const command: Command = {
 				update: { introChannel: channel?.id ?? null },
 			});
 			await interaction.editReply(channel ? `Introduction channel set to ${channel}.` : 'Introduction channel cleared.');
+			return;
+		}
+
+		if (sub === 'message-log') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], messageLogChannel: channel?.id ?? null },
+				update: { messageLogChannel: channel?.id ?? null },
+			});
+			await interaction.editReply(channel ? `Message log set to ${channel}.` : 'Message log channel cleared.');
+			return;
+		}
+
+		if (sub === 'member-log') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], memberLogChannel: channel?.id ?? null },
+				update: { memberLogChannel: channel?.id ?? null },
+			});
+			await interaction.editReply(channel ? `Member log set to ${channel}.` : 'Member log channel cleared.');
+			return;
+		}
+
+		if (sub === 'server-log') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], serverLogChannel: channel?.id ?? null },
+				update: { serverLogChannel: channel?.id ?? null },
+			});
+			await interaction.editReply(channel ? `Server log set to ${channel}.` : 'Server log channel cleared.');
 		}
 	},
 };

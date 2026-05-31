@@ -32,9 +32,16 @@ export async function generateRankCard(opts: RankCardOptions): Promise<Buffer> {
 	ctx.arc(cx, cy, r, 0, Math.PI * 2);
 	ctx.clip();
 
+	ctx.fillStyle = '#36393f';
+	ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
+
 	try {
-		const url = opts.avatarUrl.replace(/\.(webp|gif)(\?|$)/, '.png$2') + (opts.avatarUrl.includes('?') ? '&size=128' : '?size=128');
-		const avatar = await loadImage(url);
+		const base = opts.avatarUrl.split('?')[0].replace(/\.(webp|gif|png)$/, '.jpg');
+		const url = `${base}?size=256`;
+		const res = await fetch(url);
+		const avatar = await loadImage(Buffer.from(await res.arrayBuffer()));
+		ctx.imageSmoothingEnabled = true;
+		ctx.imageSmoothingQuality = 'high';
 		ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
 	} catch {
 		ctx.fillStyle = opts.color;

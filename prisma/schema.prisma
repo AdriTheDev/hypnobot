@@ -63,12 +63,15 @@ model WelcomeMessage {
 }
 
 model GuildConfig {
-  guildId        String   @id
-  noXpRoles      String[]
-  noXpChannels   String[]
-  modLogChannel  String?
-  welcomeChannel String?
-  goodbyeChannel String?
-  introChannel   String?
-  forumChannels  String[] @default([])
+  guildId           String   @id
+  noXpRoles         String[]
+  noXpChannels      String[]
+  modLogChannel     String?
+  welcomeChannel    String?
+  goodbyeChannel    String?
+  introChannel      String?
+  forumChannels     String[] @default([])
+  messageLogChannel String?
+  memberLogChannel  String?
+  serverLogChannel  String?
 }

@@ -15,25 +15,42 @@ const command: Command = {
 			where: { guildId: interaction.guildId! },
 		});
 
-		const modLog = config?.modLogChannel ? `<#${config.modLogChannel}>` : 'Not set';
-		const welcome = config?.welcomeChannel ? `<#${config.welcomeChannel}>` : 'Not set';
-		const goodbye = config?.goodbyeChannel ? `<#${config.goodbyeChannel}>` : 'Not set';
-		const intro = config?.introChannel ? `<#${config.introChannel}>` : 'Not set';
-		const forums = config?.forumChannels.length ? config.forumChannels.map((id) => `<#${id}>`).join(', ') : 'None';
-		const noXpRoles = config?.noXpRoles.length ? config.noXpRoles.map((id) => `<@&${id}>`).join(', ') : 'None';
-		const noXpChannels = config?.noXpChannels.length ? config.noXpChannels.map((id) => `<#${id}>`).join(', ') : 'None';
+		const ch = (id: string) => `<#${id}>`;
+		const ro = (id: string) => `<@&${id}>`;
+		const none = (val: string) => `*${val}*`;
 
 		const embed = new EmbedBuilder()
 			.setTitle(`${interaction.guild!.name} Server Config`)
 			.setColor(0xfd86f3)
 			.addFields(
-				{ name: 'Mod Log Channel', value: modLog, inline: true },
-				{ name: 'Welcome Channel', value: welcome, inline: true },
-				{ name: 'Goodbye Channel', value: goodbye, inline: true },
-				{ name: 'Introduction Channel', value: intro, inline: true },
-				{ name: 'Managed Forums', value: forums },
-				{ name: 'No XP Roles', value: noXpRoles },
-				{ name: 'No XP Channels', value: noXpChannels },
+				{
+					name: '📋 Log Channels',
+					value: [
+						`**Mod Log:** ${config?.modLogChannel ? ch(config.modLogChannel) : none('Not set')}`,
+						`**Message Log:** ${config?.messageLogChannel ? ch(config.messageLogChannel) : none('Not set')}`,
+						`**Member Log:** ${config?.memberLogChannel ? ch(config.memberLogChannel) : none('Not set')}`,
+						`**Server Log:** ${config?.serverLogChannel ? ch(config.serverLogChannel) : none('Not set')}`,
+					].join('\n'),
+				},
+				{
+					name: '👋 Member Channels',
+					value: [
+						`**Welcome:** ${config?.welcomeChannel ? ch(config.welcomeChannel) : none('Not set')}`,
+						`**Goodbye:** ${config?.goodbyeChannel ? ch(config.goodbyeChannel) : none('Not set')}`,
+						`**Introductions:** ${config?.introChannel ? ch(config.introChannel) : none('Not set')}`,
+					].join('\n'),
+				},
+				{
+					name: '⭐ XP Settings',
+					value: [
+						`**No-XP Roles:** ${config?.noXpRoles.length ? config.noXpRoles.map(ro).join(', ') : none('None')}`,
+						`**No-XP Channels:** ${config?.noXpChannels.length ? config.noXpChannels.map(ch).join(', ') : none('None')}`,
+					].join('\n'),
+				},
+				{
+					name: '💬 Forums',
+					value: `**Managed Forums:** ${config?.forumChannels.length ? config.forumChannels.map(ch).join(', ') : none('None')}`,
+				},
 			)
 			.setTimestamp();
 

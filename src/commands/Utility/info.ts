@@ -2,6 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder, Colors, ChatInputCommandInteraction,
 import { prisma } from '../../lib/prisma';
 import { resolveLevel } from '../../lib/levelingUtils';
 import type { Command, ExtendedClient } from '../../lib/types';
+import { version } from '../../../package.json';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -57,6 +58,7 @@ const command: Command = {
 						value: `\`${client.commands.size}\``,
 						inline: true,
 					},
+					{ name: 'Version', value: `\`v${version}\``, inline: true },
 					{ name: 'Node.js', value: `\`${process.version}\``, inline: true },
 					{
 						name: 'Discord.js',
