@@ -8,6 +8,7 @@
 		"build": "tsc --noEmit",
 		"start": "tsx --env-file=.env src/index.ts",
 		"dev": "tsx watch --env-file=.env src/index.ts",
+		"deploy": "tsx --env-file=.env src/deploy.ts",
 		"db:generate": "prisma generate",
 		"db:push": "prisma db push",
 		"db:migrate": "prisma migrate dev",

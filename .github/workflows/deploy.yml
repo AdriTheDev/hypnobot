@@ -43,12 +43,26 @@ jobs:
                     && echo "changed=true" >> "$GITHUB_OUTPUT" \
                     || echo "changed=false" >> "$GITHUB_OUTPUT"
 
+            - name: Check for command changes
+              id: commands
+              run: |
+                  git diff --name-only HEAD~1 HEAD | grep -qE '^src/commands/|^src/deploy\.ts$' \
+                    && echo "changed=true" >> "$GITHUB_OUTPUT" \
+                    || echo "changed=false" >> "$GITHUB_OUTPUT"
+
+            - name: Install dependencies
+              if: steps.schema.outputs.changed == 'true' || steps.commands.outputs.changed == 'true'
+              run: npm ci
+
             - name: Sync database schema
               if: steps.schema.outputs.changed == 'true'
               run: |
                   export $(grep -v '^#' /opt/hypnobot/.env | grep '^DATABASE_URL=' | xargs)
-                  npm ci
                   npx prisma db push
+
+            - name: Deploy commands
+              if: steps.commands.outputs.changed == 'true'
+              run: npm run deploy
 
             - name: Pull and restart
               run: |

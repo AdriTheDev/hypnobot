@@ -44,9 +44,8 @@ const event: EventFile = {
 		if (timestamps.has(userId)) {
 			const expiresAt = timestamps.get(userId)! + cooldownMs;
 			if (now < expiresAt) {
-				const remaining = ((expiresAt - now) / 1_000).toFixed(1);
 				await interaction.reply({
-					content: `Please wait **${remaining}s** before using \`/${command.data.name}\` again.`,
+					content: `You may use this command again <t:${Math.ceil(expiresAt / 1000)}:R>.`,
 					ephemeral: true,
 				});
 				return;

@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev          # Start with tsx watch (hot reload)
 npm run build        # Type-check TypeScript (no output — tsx runs source directly)
 npm run start        # Run with tsx
+npm run deploy       # Register/update slash commands with Discord (run manually after command changes)
 
 npm run db:generate  # Regenerate Prisma client after schema changes
 npm run db:push      # Sync schema to the DB without a migration file
