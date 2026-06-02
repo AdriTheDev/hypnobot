@@ -1,11 +1,10 @@
-import type { Client } from 'discord.js';
+import type { GuildMember, PartialGuildMember } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { updatePresence } from '../../lib/updatePresence';
 
 const event: EventFile = {
-	once: true,
-	execute(client: Client) {
-		updatePresence(client);
+	execute(member: GuildMember | PartialGuildMember) {
+		updatePresence(member.client);
 	},
 };
 

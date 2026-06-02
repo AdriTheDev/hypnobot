@@ -1,3 +1,8 @@
+FROM node:22-slim AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+
 FROM node:22-slim AS builder
 WORKDIR /app
 COPY package*.json ./
@@ -13,8 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production
-COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/src/generated ./src/generated
 COPY tsconfig.json ./
 COPY src ./src
