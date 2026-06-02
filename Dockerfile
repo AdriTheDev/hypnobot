@@ -4,6 +4,7 @@ COPY package*.json ./
 RUN npm ci
 COPY prisma.config.ts ./
 COPY prisma ./prisma
+ARG DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
 RUN npx prisma generate
 
 FROM node:22-slim AS runner
