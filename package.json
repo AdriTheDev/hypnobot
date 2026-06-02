@@ -1,6 +1,6 @@
 {
 	"name": "hypnobot",
-	"version": "1.2.2",
+	"version": "1.2.3",
 	"description": "A Discord bot with advanced command/event handling and leveling.",
 	"main": "dist/index.js",
 	"type": "module",

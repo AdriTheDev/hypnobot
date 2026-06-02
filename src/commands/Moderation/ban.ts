@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
+import { AutocompleteInteraction, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
@@ -9,12 +9,25 @@ const command: Command = {
 		.setName('ban')
 		.setDescription('Ban a user from the server.')
 		.addUserOption((opt) => opt.setName('user').setDescription('User to ban.').setRequired(true))
-		.addStringOption((opt) => opt.setName('reason').setDescription('Reason for the ban.').setRequired(true))
+		.addStringOption((opt) => opt.setName('reason').setDescription('Reason for the ban.').setRequired(true).setAutocomplete(true))
 		.addStringOption((opt) => opt.setName('duration').setDescription('Duration (e.g. 7d, 24h). Omit for permanent.').setRequired(false))
 		.addIntegerOption((opt) =>
 			opt.setName('delete-days').setDescription('Days of messages to delete (0-7).').setMinValue(0).setMaxValue(7).setRequired(false),
 		)
 		.setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
+
+	async autocomplete(interaction: AutocompleteInteraction) {
+		const focused = interaction.options.getFocused();
+		const aliases = await prisma.guildAlias.findMany({
+			where: {
+				guildId: interaction.guildId!,
+				type: { in: ['ban', 'global'] },
+				name: { startsWith: focused, mode: 'insensitive' },
+			},
+			take: 25,
+		});
+		await interaction.respond(aliases.map((a) => ({ name: `${a.name} → ${a.value}`.slice(0, 100), value: a.name })));
+	},
 
 	async execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply({ ephemeral: true });

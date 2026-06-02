@@ -1,6 +1,7 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, Colors, GuildMember } from 'discord.js';
+import { AutocompleteInteraction, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, Colors, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM } from '../../lib/modUtils';
+import { prisma } from '../../lib/prisma';
 import ms, { StringValue } from 'ms';
 
 const MAX_TIMEOUT_MS = 28 * 24 * 60 * 60 * 1000;
@@ -11,8 +12,21 @@ const command: Command = {
 		.setDescription('Timeout a member, preventing them from sending messages.')
 		.addUserOption((opt) => opt.setName('user').setDescription('Member to mute.').setRequired(true))
 		.addStringOption((opt) => opt.setName('duration').setDescription('Duration (e.g. 10m, 1h, 7d). Max 28 days.').setRequired(true))
-		.addStringOption((opt) => opt.setName('reason').setDescription('Reason for the mute.').setRequired(true))
+		.addStringOption((opt) => opt.setName('reason').setDescription('Reason for the mute.').setRequired(true).setAutocomplete(true))
 		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
+
+	async autocomplete(interaction: AutocompleteInteraction) {
+		const focused = interaction.options.getFocused();
+		const aliases = await prisma.guildAlias.findMany({
+			where: {
+				guildId: interaction.guildId!,
+				type: { in: ['mute', 'global'] },
+				name: { startsWith: focused, mode: 'insensitive' },
+			},
+			take: 25,
+		});
+		await interaction.respond(aliases.map((a) => ({ name: `${a.name} → ${a.value}`.slice(0, 100), value: a.name })));
+	},
 
 	async execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply({ ephemeral: true });

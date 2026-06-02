@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, Client, Collection, RESTPostAPIChatInputApplicationCommandsJSONBody } from 'discord.js';
+import { AutocompleteInteraction, ChatInputCommandInteraction, Client, Collection, RESTPostAPIChatInputApplicationCommandsJSONBody } from 'discord.js';
 
 export interface Command {
 	data: {
@@ -10,6 +10,7 @@ export interface Command {
 	ownerOnly?: boolean;
 	deleted?: boolean;
 	execute(interaction: ChatInputCommandInteraction, client: ExtendedClient): Promise<void>;
+	autocomplete?(interaction: AutocompleteInteraction): Promise<void>;
 }
 
 export interface EventFile {

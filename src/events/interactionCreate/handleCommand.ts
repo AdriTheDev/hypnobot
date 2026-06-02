@@ -3,6 +3,13 @@ import type { EventFile, ExtendedClient } from '../../lib/types';
 
 const event: EventFile = {
 	async execute(interaction: Interaction) {
+		if (interaction.isAutocomplete()) {
+			const client = interaction.client as ExtendedClient;
+			const command = client.commands.get(interaction.commandName);
+			await command?.autocomplete?.(interaction).catch(() => null);
+			return;
+		}
+
 		if (!interaction.isChatInputCommand()) return;
 
 		const client = interaction.client as ExtendedClient;
