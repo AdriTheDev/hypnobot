@@ -8,3 +8,6 @@ services:
             OWNER_IDS: ${OWNER_IDS}
             DEV_MODE: false
             DATABASE_URL: ${DATABASE_URL}
+            DATABASE_SSL_CA_PATH: /run/secrets/db-ca-cert
+        volumes:
+            - /opt/hypnobot/ca-certificate.crt:/run/secrets/db-ca-cert:ro
