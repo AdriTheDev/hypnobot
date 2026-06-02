@@ -20,7 +20,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/src/generated ./src/generated
-COPY tsconfig.json ./
+COPY package.json tsconfig.json ./
 COPY src ./src
 USER node
 CMD ["node_modules/.bin/tsx", "src/index.ts"]
