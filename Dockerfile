@@ -19,4 +19,4 @@ COPY --from=builder /app/src/generated ./src/generated
 COPY tsconfig.json ./
 COPY src ./src
 USER node
-CMD ["tsx", "src/index.ts"]
+CMD ["node_modules/.bin/tsx", "src/index.ts"]
