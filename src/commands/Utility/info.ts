@@ -18,11 +18,10 @@ const command: Command = {
 		.addSubcommand((sub) => sub.setName('server').setDescription('Show server information.')),
 
 	async execute(interaction: ChatInputCommandInteraction, client: ExtendedClient) {
+		await interaction.deferReply({ ephemeral: true });
 		const sub = interaction.options.getSubcommand();
 
 		if (sub === 'bot') {
-			await interaction.deferReply();
-
 			const totalMembers = client.guilds.cache.reduce((acc, g) => acc + g.memberCount, 0);
 
 			const embed = new EmbedBuilder()
@@ -73,8 +72,6 @@ const command: Command = {
 		}
 
 		if (sub === 'user') {
-			await interaction.deferReply();
-
 			const target = interaction.options.getUser('user') ?? interaction.user;
 			const [member, levelRecord] = await Promise.all([
 				interaction.guild!.members.fetch(target.id).catch(() => null),
@@ -149,8 +146,6 @@ const command: Command = {
 		}
 
 		if (sub === 'server') {
-			await interaction.deferReply();
-
 			const guild = interaction.guild!;
 			const owner = await guild.fetchOwner().catch(() => null);
 

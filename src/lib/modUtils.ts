@@ -50,6 +50,7 @@ export function buildModEmbed(options: {
 	const embed = new EmbedBuilder()
 		.setTitle(options.action)
 		.setColor(options.color ?? 0xff6961)
+		.setThumbnail(options.target.displayAvatarURL())
 		.addFields(
 			{
 				name: 'User',
@@ -122,11 +123,13 @@ export async function sendPublicModLog(guild: Guild, embed: EmbedBuilder): Promi
 	if (!channel?.isTextBased()) return;
 
 	const data = embed.toJSON();
-	const publicEmbed = new EmbedBuilder(data).spliceFields(
-		0,
-		data.fields?.length ?? 0,
-		...(data.fields?.filter((f) => f.name !== 'Moderator') ?? []),
-	);
+	const publicEmbed = new EmbedBuilder(data)
+		.spliceFields(
+			0,
+			data.fields?.length ?? 0,
+			...(data.fields?.filter((f) => f.name !== 'Moderator') ?? []),
+		)
+		.setFooter(null);
 
 	await (channel as TextChannel).send({ embeds: [publicEmbed] }).catch(() => null);
 }

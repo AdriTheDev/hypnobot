@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, Colors, EmbedBuilder } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { resolveReason, sendModLog } from '../../lib/modUtils';
+import { buildModEmbed, resolveReason, sendModLog, sendPublicModLog } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
 
 const command: Command = {
@@ -30,25 +30,16 @@ const command: Command = {
 			where: { userId, guildId: interaction.guildId! },
 		});
 
-		const embed = new EmbedBuilder()
-			.setTitle('Member Unbanned')
-			.setColor(0x77dd77)
-			.addFields(
-				{
-					name: 'User',
-					value: `${ban.user.tag} (\`${userId}\`)`,
-					inline: true,
-				},
-				{
-					name: 'Moderator',
-					value: `${interaction.user}`,
-					inline: true,
-				},
-				{ name: 'Reason', value: reason },
-			)
-			.setTimestamp();
+		const embed = buildModEmbed({
+			action: 'Member Unbanned',
+			target: ban.user,
+			moderator: interaction.user,
+			reason,
+			color: 0x77dd77,
+		});
 
-		await sendModLog(interaction.guild!, embed);
+		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
+
 		await interaction.editReply({ embeds: [embed] });
 	},
 };
