@@ -3,6 +3,13 @@ name: Build
 on:
     push:
         branches: [main]
+        paths:
+            - 'src/**'
+            - 'prisma/**'
+            - 'prisma.config.ts'
+            - 'package*.json'
+            - 'tsconfig.json'
+            - 'Dockerfile'
 
 env:
     REGISTRY: ghcr.io

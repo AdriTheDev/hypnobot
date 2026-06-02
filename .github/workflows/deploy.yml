@@ -22,6 +22,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
 
             - name: Log in to GHCR
               uses: docker/login-action@v3
@@ -33,11 +35,19 @@ jobs:
             - name: Copy env file
               run: cp /opt/hypnobot/.env .env
 
+            - name: Check for schema changes
+              id: schema
+              run: |
+                  git diff --name-only HEAD~1 HEAD | grep -q '^prisma/schema\.prisma$' \
+                    && echo "changed=true" >> "$GITHUB_OUTPUT" \
+                    || echo "changed=false" >> "$GITHUB_OUTPUT"
+
             - name: Sync database schema
+              if: steps.schema.outputs.changed == 'true'
               run: |
                   export $(grep -v '^#' /opt/hypnobot/.env | grep '^DATABASE_URL=' | xargs)
                   npm ci
-                  npx prisma db push --skip-generate
+                  npx prisma db push
 
             - name: Pull and restart
               run: |
