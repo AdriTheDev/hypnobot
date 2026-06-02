@@ -1,8 +1,11 @@
 import { readdirSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
 import type { EventFile, ExtendedClient } from '../lib/types';
 
-export function loadEvents(client: ExtendedClient): void {
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export async function loadEvents(client: ExtendedClient): Promise<void> {
 	const eventsPath = join(__dirname, '..', 'events');
 	const eventFolders = readdirSync(eventsPath, { withFileTypes: true })
 		.filter((d) => d.isDirectory())
@@ -14,7 +17,7 @@ export function loadEvents(client: ExtendedClient): void {
 
 		for (const file of files) {
 			const filePath = join(folderPath, file);
-			const mod = require(filePath) as {
+			const mod = (await import(pathToFileURL(filePath).href)) as {
 				default?: EventFile;
 			} & EventFile;
 			const eventFile: EventFile = mod.default ?? mod;

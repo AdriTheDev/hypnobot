@@ -124,11 +124,7 @@ export async function sendPublicModLog(guild: Guild, embed: EmbedBuilder): Promi
 
 	const data = embed.toJSON();
 	const publicEmbed = new EmbedBuilder(data)
-		.spliceFields(
-			0,
-			data.fields?.length ?? 0,
-			...(data.fields?.filter((f) => f.name !== 'Moderator') ?? []),
-		)
+		.spliceFields(0, data.fields?.length ?? 0, ...(data.fields?.filter((f) => f.name !== 'Moderator') ?? []))
 		.setFooter(null);
 
 	await (channel as TextChannel).send({ embeds: [publicEmbed] }).catch(() => null);

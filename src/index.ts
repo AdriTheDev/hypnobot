@@ -4,7 +4,7 @@ import { loadCommands } from './handlers/commandHandler';
 import { loadEvents } from './handlers/eventHandler';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const client = new Client({
 	intents: [
@@ -29,6 +29,6 @@ client.cooldowns = new Collection<string, Collection<string, number>>();
 
 (async () => {
 	await loadCommands(client);
-	loadEvents(client);
+	await loadEvents(client);
 	await client.login(process.env.DISCORD_TOKEN);
 })();

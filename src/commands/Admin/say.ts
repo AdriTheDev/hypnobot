@@ -7,9 +7,7 @@ const command: Command = {
 	data: new SlashCommandBuilder()
 		.setName('say')
 		.setDescription('Send a message as the bot.')
-		.addStringOption((opt) =>
-			opt.setName('message').setDescription('Message content to send.').setRequired(true).setMaxLength(2000),
-		)
+		.addStringOption((opt) => opt.setName('message').setDescription('Message content to send.').setRequired(true).setMaxLength(2000))
 		.addChannelOption((opt) =>
 			opt
 				.setName('channel')
@@ -17,9 +15,7 @@ const command: Command = {
 				.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
 				.setRequired(false),
 		)
-		.addStringOption((opt) =>
-			opt.setName('reply-to').setDescription('Message ID or URL to reply to.').setRequired(false),
-		),
+		.addStringOption((opt) => opt.setName('reply-to').setDescription('Message ID or URL to reply to.').setRequired(false)),
 
 	ownerOnly: true,
 
