@@ -70,10 +70,9 @@ No comments unless the reason behind something is genuinely non-obvious. Never a
 
 | Variable        | Required           | Purpose                                           |
 | --------------- | ------------------ | ------------------------------------------------- |
-| `DISCORD_TOKEN`        | Yes                | Bot token                                           |
-| `CLIENT_ID`            | Yes                | Application ID for command registration             |
-| `OWNER_IDS`            | Yes                | Comma-separated user IDs with owner access          |
-| `DATABASE_URL`         | Yes                | PostgreSQL connection string                        |
-| `DATABASE_SSL_CA_PATH` | Production         | Path to the DB CA certificate file for SSL verify   |
-| `DEV_MODE`             | No                 | Set `true` to register commands to a single guild   |
-| `DEV_GUILD_ID`         | When DEV_MODE=true | Target guild for dev command registration           |
+| `DISCORD_TOKEN` | Yes                | Bot token                                         |
+| `CLIENT_ID`     | Yes                | Application ID for command registration           |
+| `OWNER_IDS`     | Yes                | Comma-separated user IDs with owner access        |
+| `DATABASE_URL`  | Yes                | PostgreSQL connection string                      |
+| `DEV_MODE`      | No                 | Set `true` to register commands to a single guild |
+| `DEV_GUILD_ID`  | When DEV_MODE=true | Target guild for dev command registration         |
