@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev          # Start with ts-node-dev (hot reload)
-npm run build        # Compile TypeScript → dist/
-npm run start        # Run compiled output
+npm run dev          # Start with tsx watch (hot reload)
+npm run build        # Type-check TypeScript (no output — tsx runs source directly)
+npm run start        # Run with tsx
 
 npm run db:generate  # Regenerate Prisma client after schema changes
 npm run db:push      # Sync schema to the DB without a migration file
@@ -58,7 +58,9 @@ The `UserLevel` Prisma model stores lifetime `xp` and the last-known `level`. `r
 
 ### Database
 
-Single `PrismaClient` singleton in `src/lib/prisma.ts`. After any change to `prisma/schema.prisma`, run `npm run db:generate` then either `db:push` (dev, no migration history) or `db:migrate` (named migration).
+`src/lib/prisma.ts` exports a single `PrismaClient` instance using the `@prisma/adapter-pg` driver adapter. The project uses Prisma v7, which requires a `prisma.config.ts` at the root (datasource URL for CLI tools) and generates the client to `src/generated/prisma/` rather than `node_modules/`.
+
+After any change to `prisma/schema.prisma`, run `npm run db:generate` then either `db:push` (dev, no migration history) or `db:migrate` (named migration). Import the Prisma client from `src/lib/prisma.ts`, never from the generated path directly.
 
 ## Code style
 
