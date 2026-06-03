@@ -1,4 +1,11 @@
-import { AutocompleteInteraction, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, Colors, GuildMember } from 'discord.js';
+import {
+	AutocompleteInteraction,
+	SlashCommandBuilder,
+	PermissionFlagsBits,
+	ChatInputCommandInteraction,
+	Colors,
+	GuildMember,
+} from 'discord.js';
 import type { Command } from '../../lib/types';
 import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
@@ -20,7 +27,7 @@ const command: Command = {
 		const aliases = await prisma.guildAlias.findMany({
 			where: {
 				guildId: interaction.guildId!,
-				type: { in: ['mute', 'global'] },
+				type: 'mute',
 				name: { startsWith: focused, mode: 'insensitive' },
 			},
 			take: 25,

@@ -29,14 +29,10 @@ const ACTION_COLOR: Record<PunishmentAction, number> = {
 };
 
 export async function resolveReason(guildId: string, type: string, text: string): Promise<string> {
-	const aliases = await prisma.guildAlias.findMany({
-		where: {
-			guildId,
-			name: { equals: text, mode: 'insensitive' },
-			type: { in: [type, 'global'] },
-		},
+	const alias = await prisma.guildAlias.findFirst({
+		where: { guildId, type, name: { equals: text, mode: 'insensitive' } },
 	});
-	return aliases.find((a) => a.type === type)?.value ?? aliases.find((a) => a.type === 'global')?.value ?? text;
+	return alias?.value ?? text;
 }
 
 export function buildModEmbed(options: {

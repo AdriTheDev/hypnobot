@@ -3,17 +3,17 @@ import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 
 const ALIAS_TYPES = [
-	{ name: 'Global (all actions)', value: 'global' },
 	{ name: 'Warn', value: 'warn' },
 	{ name: 'Kick', value: 'kick' },
 	{ name: 'Ban', value: 'ban' },
 	{ name: 'Mute', value: 'mute' },
+	{ name: 'Trigger (message commands)', value: 'trigger' },
 ] as const;
 
 const command: Command = {
 	data: new SlashCommandBuilder()
 		.setName('alias')
-		.setDescription('Manage reason aliases for moderation commands.')
+		.setDescription('Manage aliases for moderation commands and message triggers.')
 		.addSubcommand((sub) =>
 			sub
 				.setName('list')
@@ -37,8 +37,10 @@ const command: Command = {
 						.setRequired(true)
 						.addChoices(...ALIAS_TYPES),
 				)
-				.addStringOption((opt) => opt.setName('name').setDescription('Alias shorthand (e.g. "spam").').setRequired(true))
-				.addStringOption((opt) => opt.setName('value').setDescription('Full reason text.').setRequired(true)),
+				.addStringOption((opt) => opt.setName('name').setDescription('Alias name / trigger text.').setRequired(true))
+				.addStringOption((opt) =>
+					opt.setName('value').setDescription('Value to expand to (reason text or message to send).').setRequired(true),
+				),
 		)
 		.addSubcommand((sub) =>
 			sub
@@ -79,7 +81,7 @@ const command: Command = {
 				grouped.get(alias.type)!.push(alias);
 			}
 
-			const embed = new EmbedBuilder().setTitle('Reason Aliases').setColor(Colors.Blurple).setTimestamp();
+			const embed = new EmbedBuilder().setTitle('Aliases').setColor(Colors.Blurple).setTimestamp();
 			for (const [type, list] of grouped) {
 				embed.addFields({
 					name: type,

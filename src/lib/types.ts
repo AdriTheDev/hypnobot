@@ -1,4 +1,10 @@
-import { AutocompleteInteraction, ChatInputCommandInteraction, Client, Collection, RESTPostAPIChatInputApplicationCommandsJSONBody } from 'discord.js';
+import {
+	AutocompleteInteraction,
+	ChatInputCommandInteraction,
+	Client,
+	Collection,
+	RESTPostAPIChatInputApplicationCommandsJSONBody,
+} from 'discord.js';
 
 export interface Command {
 	data: {

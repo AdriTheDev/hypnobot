@@ -21,7 +21,7 @@ const command: Command = {
 		const aliases = await prisma.guildAlias.findMany({
 			where: {
 				guildId: interaction.guildId!,
-				type: { in: ['ban', 'global'] },
+				type: 'ban',
 				name: { startsWith: focused, mode: 'insensitive' },
 			},
 			take: 25,

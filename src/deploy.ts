@@ -39,19 +39,14 @@ for (const category of categories) {
 }
 
 const rest = new REST({ version: '10' }).setToken(token);
-const route =
-	devMode && devGuildId
-		? Routes.applicationGuildCommands(clientId, devGuildId)
-		: Routes.applicationCommands(clientId);
+const route = devMode && devGuildId ? Routes.applicationGuildCommands(clientId, devGuildId) : Routes.applicationCommands(clientId);
 
 const existing = (await rest.get(route)) as Record<string, unknown>[];
 const incomingMap = new Map(toRegister.map((c) => [c.name, JSON.stringify(c)]));
 const existingMap = new Map(
 	existing.map((c) => {
 		const incoming = toRegister.find((b) => b.name === c.name);
-		const normalized = incoming
-			? Object.fromEntries(Object.keys(incoming).map((k) => [k, c[k]]))
-			: c;
+		const normalized = incoming ? Object.fromEntries(Object.keys(incoming).map((k) => [k, c[k]])) : c;
 		return [c.name as string, JSON.stringify(normalized)];
 	}),
 );

@@ -1,4 +1,11 @@
-import { AutocompleteInteraction, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, GuildMember } from 'discord.js';
+import {
+	AutocompleteInteraction,
+	SlashCommandBuilder,
+	PermissionFlagsBits,
+	ChatInputCommandInteraction,
+	EmbedBuilder,
+	GuildMember,
+} from 'discord.js';
 import type { Command } from '../../lib/types';
 import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
@@ -12,7 +19,9 @@ const command: Command = {
 				.setName('add')
 				.setDescription('Issue a warning to a member.')
 				.addUserOption((opt) => opt.setName('user').setDescription('Member to warn.').setRequired(true))
-				.addStringOption((opt) => opt.setName('reason').setDescription('Reason for the warning.').setRequired(true).setAutocomplete(true)),
+				.addStringOption((opt) =>
+					opt.setName('reason').setDescription('Reason for the warning.').setRequired(true).setAutocomplete(true),
+				),
 		)
 		.addSubcommand((sub) =>
 			sub
@@ -34,7 +43,7 @@ const command: Command = {
 		const aliases = await prisma.guildAlias.findMany({
 			where: {
 				guildId: interaction.guildId!,
-				type: { in: ['warn', 'global'] },
+				type: 'warn',
 				name: { startsWith: focused, mode: 'insensitive' },
 			},
 			take: 25,

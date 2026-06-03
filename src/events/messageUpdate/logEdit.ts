@@ -6,7 +6,9 @@ import { sendLog } from '../../lib/logWebhook';
 const event: EventFile = {
 	async execute(oldMessage: Message | PartialMessage, newMessage: Message | PartialMessage) {
 		if (!newMessage.guild || newMessage.author?.bot || newMessage.webhookId) return;
-		if (oldMessage.content === newMessage.content) return;
+		const before = oldMessage.content ?? null;
+		const after = newMessage.content ?? null;
+		if (before === after || !after) return;
 
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: newMessage.guild.id } });
 		if (!config?.messageLogChannel) return;
@@ -22,8 +24,8 @@ const event: EventFile = {
 					inline: true,
 				},
 				{ name: 'Channel', value: `<#${newMessage.channelId}>`, inline: true },
-				{ name: 'Before', value: oldMessage.content?.slice(0, 1024) || '*Not cached*' },
-				{ name: 'After', value: newMessage.content?.slice(0, 1024) || '*No content*' },
+				{ name: 'Before', value: before?.slice(0, 1024) ?? '*Not cached*' },
+				{ name: 'After', value: after.slice(0, 1024) },
 			)
 			.setTimestamp();
 
