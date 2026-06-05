@@ -54,6 +54,10 @@ jobs:
               if: steps.schema.outputs.changed == 'true' || steps.commands.outputs.changed == 'true'
               run: npm ci
 
+            - name: Generate Prisma client
+              if: steps.schema.outputs.changed == 'true' || steps.commands.outputs.changed == 'true'
+              run: npx prisma generate
+
             - name: Sync database schema
               if: steps.schema.outputs.changed == 'true'
               run: |
