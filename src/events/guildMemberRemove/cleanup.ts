@@ -1,4 +1,4 @@
-import { GuildMember, PartialGuildMember, ChannelType, TextChannel, ForumChannel } from 'discord.js';
+import { GuildMember, PartialGuildMember, ChannelType, TextChannel, ForumChannel, MessageType } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 
@@ -50,6 +50,15 @@ const event: EventFile = {
 			prisma.guildConfig.findUnique({ where: { guildId: member.guild.id } }),
 			prisma.welcomeMessage.findUnique({ where: { userId_guildId: { userId: member.id, guildId: member.guild.id } } }),
 		]);
+
+		const systemChannel = member.guild.systemChannel;
+		if (systemChannel) {
+			const messages = await systemChannel.messages.fetch({ limit: 100 }).catch(() => null);
+			if (messages) {
+				const joinMessage = messages.find((m) => m.type === MessageType.UserJoin && m.author.id === member.id);
+				await joinMessage?.delete().catch(() => null);
+			}
+		}
 
 		if (welcome) {
 			const welcomeChannel = member.guild.channels.cache.get(welcome.channelId);

@@ -11,9 +11,6 @@ const command: Command = {
 		.addUserOption((opt) => opt.setName('user').setDescription('User to ban.').setRequired(true))
 		.addStringOption((opt) => opt.setName('reason').setDescription('Reason for the ban.').setRequired(true).setAutocomplete(true))
 		.addStringOption((opt) => opt.setName('duration').setDescription('Duration (e.g. 7d, 24h). Omit for permanent.').setRequired(false))
-		.addIntegerOption((opt) =>
-			opt.setName('delete-days').setDescription('Days of messages to delete (0-7).').setMinValue(0).setMaxValue(7).setRequired(false),
-		)
 		.setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
 
 	async autocomplete(interaction: AutocompleteInteraction) {
@@ -35,7 +32,6 @@ const command: Command = {
 		const targetUser = interaction.options.getUser('user', true);
 		const rawReason = interaction.options.getString('reason', true);
 		const durationStr = interaction.options.getString('duration');
-		const deleteDays = interaction.options.getInteger('delete-days') ?? 0;
 
 		const member = await interaction.guild!.members.fetch(targetUser.id).catch(() => null);
 
@@ -73,7 +69,7 @@ const command: Command = {
 
 		await interaction.guild!.bans.create(targetUser.id, {
 			reason,
-			deleteMessageSeconds: deleteDays * 86400,
+			deleteMessageSeconds: 7 * 86400,
 		});
 
 		if (durationMs) {
