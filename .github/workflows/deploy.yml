@@ -6,6 +6,11 @@ on:
         types: [completed]
         branches: [main]
     workflow_dispatch:
+        inputs:
+            deploy_commands:
+                description: Force deploy slash commands
+                type: boolean
+                default: false
 
 env:
     REGISTRY: ghcr.io
@@ -51,11 +56,11 @@ jobs:
                     || echo "changed=false" >> "$GITHUB_OUTPUT"
 
             - name: Install dependencies
-              if: steps.schema.outputs.changed == 'true' || steps.commands.outputs.changed == 'true'
+              if: steps.schema.outputs.changed == 'true' || steps.commands.outputs.changed == 'true' || inputs.deploy_commands == true
               run: npm ci
 
             - name: Generate Prisma client
-              if: steps.schema.outputs.changed == 'true' || steps.commands.outputs.changed == 'true'
+              if: steps.schema.outputs.changed == 'true' || steps.commands.outputs.changed == 'true' || inputs.deploy_commands == true
               run: npx prisma generate
 
             - name: Sync database schema
@@ -65,7 +70,7 @@ jobs:
                   npx prisma db push
 
             - name: Deploy commands
-              if: steps.commands.outputs.changed == 'true'
+              if: steps.commands.outputs.changed == 'true' || inputs.deploy_commands == true
               run: npm run deploy
 
             - name: Pull and restart
