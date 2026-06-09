@@ -27,6 +27,7 @@ const event: EventFile = {
 				{ name: 'Before', value: before?.slice(0, 1024) ?? '*Not cached*' },
 				{ name: 'After', value: after.slice(0, 1024) },
 			)
+			.setFooter({ text: `Message ID: ${newMessage.id}` })
 			.setTimestamp();
 
 		await sendLog(newMessage.guild, config.messageLogChannel, embed);

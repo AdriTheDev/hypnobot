@@ -133,7 +133,7 @@ const command: Command = {
 			}
 
 			if (levelRecord) {
-				const { level, currentLevelXP, requiredXP } = resolveLevel(levelRecord.xp);
+				const { level, currentLevelXP, requiredXP } = resolveLevel(Number(levelRecord.xp));
 				embed.addFields(
 					{ name: 'Level', value: `\`${level}\``, inline: true },
 					{ name: 'XP', value: `\`${currentLevelXP} / ${requiredXP}\``, inline: true },

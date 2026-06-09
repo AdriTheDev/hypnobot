@@ -11,7 +11,7 @@ model UserLevel {
   id       String @id @default(cuid())
   userId   String
   guildId  String
-  xp       Int    @default(0)
+  xp       BigInt @default(0)
   level    Int    @default(0)
   messages Int    @default(0)
 

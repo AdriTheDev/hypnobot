@@ -16,7 +16,8 @@ const command: Command = {
 
 		const targetUser = interaction.options.getUser('user', true);
 		const level = interaction.options.getInteger('level', true);
-		const xp = totalXPForLevel(level);
+		const xpNumber = totalXPForLevel(level);
+		const xp = BigInt(xpNumber);
 
 		await prisma.userLevel.upsert({
 			where: {
@@ -34,7 +35,7 @@ const command: Command = {
 			update: { xp, level },
 		});
 
-		await interaction.editReply(`Set ${targetUser}'s level to **${level}** (${xp.toLocaleString()} XP).`);
+		await interaction.editReply(`Set ${targetUser}'s level to **${level}** (${xpNumber.toLocaleString()} XP).`);
 	},
 };
 

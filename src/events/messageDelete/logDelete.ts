@@ -26,6 +26,7 @@ const event: EventFile = {
 				},
 				{ name: 'Channel', value: `<#${message.channelId}>`, inline: true },
 			)
+			.setFooter({ text: `Message ID: ${message.id}` })
 			.setTimestamp();
 
 		if (message.content) {

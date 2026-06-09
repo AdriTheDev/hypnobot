@@ -15,7 +15,7 @@ const event: EventFile = {
 
 		await prisma.userLevel.upsert({
 			where: { userId_guildId: { userId, guildId } },
-			create: { userId, guildId, xp: 0, level: 0, messages: 1 },
+			create: { userId, guildId, xp: 0n, level: 0, messages: 1 },
 			update: { messages: { increment: 1 } },
 		});
 
@@ -33,10 +33,10 @@ const event: EventFile = {
 
 		const record = await prisma.userLevel.update({
 			where: { userId_guildId: { userId, guildId } },
-			data: { xp: { increment: gained } },
+			data: { xp: { increment: BigInt(gained) } },
 		});
 
-		const { level } = resolveLevel(record.xp);
+		const { level } = resolveLevel(Number(record.xp));
 
 		if (level > record.level) {
 			await prisma.userLevel.update({

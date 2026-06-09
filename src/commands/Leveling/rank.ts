@@ -24,11 +24,12 @@ const command: Command = {
 			where: { userId_guildId: { userId: target.id, guildId } },
 		});
 
-		const totalXP = record?.xp ?? 0;
+		const rawXP = record?.xp ?? 0n;
+		const totalXP = Number(rawXP);
 		const { level, currentLevelXP, requiredXP } = resolveLevel(totalXP);
 
 		const above = await prisma.userLevel.count({
-			where: { guildId, xp: { gt: totalXP } },
+			where: { guildId, xp: { gt: rawXP } },
 		});
 		const rank = above + 1;
 

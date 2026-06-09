@@ -31,7 +31,7 @@ const command: Command = {
 				const user = await interaction.client.users.fetch(m.userId).catch(() => null);
 				const name = user ? user : m.userId;
 				const medal = MEDALS[i] ?? `**${i + 1}.**`;
-				const { level, currentLevelXP, requiredXP } = resolveLevel(m.xp);
+				const { level, currentLevelXP, requiredXP } = resolveLevel(Number(m.xp));
 				return `${medal} ${name} - Level ${level} (${currentLevelXP.toLocaleString()}/${requiredXP.toLocaleString()} XP)`;
 			}),
 		);
