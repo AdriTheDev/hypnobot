@@ -3,10 +3,12 @@ import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { sendLog } from '../../lib/logWebhook';
 import { fetchAuditEntry } from '../../lib/modUtils';
+import { botDeletedMessages } from '../../lib/botDeletedMessages';
 
 const event: EventFile = {
 	async execute(message: Message | PartialMessage) {
 		if (!message.guild || message.author?.bot || message.webhookId) return;
+		if (botDeletedMessages.delete(message.id)) return;
 
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: message.guild.id } });
 		if (!config?.messageLogChannel) return;

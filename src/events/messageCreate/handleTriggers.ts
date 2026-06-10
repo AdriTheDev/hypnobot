@@ -1,6 +1,7 @@
 import type { Message } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
+import { botDeletedMessages } from '../../lib/botDeletedMessages';
 
 const event: EventFile = {
 	async execute(message: Message) {
@@ -18,7 +19,8 @@ const event: EventFile = {
 		const mentions = [...message.mentions.users.values()];
 		const prefix = mentions.length > 0 ? mentions.map((u) => `<@${u.id}>`).join(' ') + ' ' : '';
 
-		await message.delete().catch(() => null);
+		botDeletedMessages.add(message.id);
+		await message.delete().catch(() => { botDeletedMessages.delete(message.id); });
 		await message.channel.send(`${prefix}\n${trigger.value}`);
 	},
 };
