@@ -40,6 +40,7 @@ const command: Command = {
 						`**Welcome:** ${config?.welcomeChannel ? ch(config.welcomeChannel) : none('Not set')}`,
 						`**Goodbye:** ${config?.goodbyeChannel ? ch(config.goodbyeChannel) : none('Not set')}`,
 						`**Introductions:** ${config?.introChannel ? ch(config.introChannel) : none('Not set')}`,
+						`**Leaderboard:** ${config?.leaderboardChannel ? ch(config.leaderboardChannel) : none('Not set')}`,
 					].join('\n'),
 				},
 				{

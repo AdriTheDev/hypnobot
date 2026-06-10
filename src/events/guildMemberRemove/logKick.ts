@@ -1,17 +1,13 @@
 import { GuildMember, PartialGuildMember, AuditLogEvent } from 'discord.js';
 import type { EventFile } from '../../lib/types';
-import { buildModEmbed, sendModLog, sendPublicModLog } from '../../lib/modUtils';
+import { buildModEmbed, sendModLog, sendPublicModLog, fetchAuditEntry } from '../../lib/modUtils';
 
 const event: EventFile = {
 	async execute(member: GuildMember | PartialGuildMember) {
 		if (!member.user) return;
 
-		const logs = await member.guild.fetchAuditLogs({ type: AuditLogEvent.MemberKick, limit: 1 }).catch(() => null);
-		const entry = logs?.entries.first();
-
-		if (!entry?.executor || entry.target?.id !== member.id) return;
-		if (Date.now() - entry.createdTimestamp > 5000) return;
-		if (entry.executor.id === member.guild.client.user?.id) return;
+		const entry = await fetchAuditEntry(member.guild, AuditLogEvent.MemberKick, member.id);
+		if (!entry?.executor) return;
 
 		const [target, moderator] = await Promise.all([
 			member.guild.client.users.fetch(member.id).catch(() => null),

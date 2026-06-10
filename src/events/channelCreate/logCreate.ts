@@ -1,7 +1,8 @@
-import { GuildChannel, EmbedBuilder, ChannelType } from 'discord.js';
+import { GuildChannel, EmbedBuilder, ChannelType, AuditLogEvent } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { sendLog } from '../../lib/logWebhook';
+import { fetchAuditExecutor } from '../../lib/modUtils';
 
 const CHANNEL_TYPE_NAMES: Partial<Record<ChannelType, string>> = {
 	[ChannelType.GuildText]: 'Text',
@@ -18,6 +19,8 @@ const event: EventFile = {
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: channel.guild.id } });
 		if (!config?.serverLogChannel) return;
 
+		const executor = await fetchAuditExecutor(channel.guild, AuditLogEvent.ChannelCreate, channel.id);
+
 		const embed = new EmbedBuilder()
 			.setTitle('Channel Created')
 			.setColor(0x77dd77)
@@ -30,6 +33,10 @@ const event: EventFile = {
 
 		if (channel.parent) {
 			embed.addFields({ name: 'Category', value: channel.parent.name, inline: true });
+		}
+
+		if (executor) {
+			embed.addFields({ name: 'By', value: `${executor} (\`${executor.id}\`)`, inline: true });
 		}
 
 		await sendLog(channel.guild, config.serverLogChannel, embed);

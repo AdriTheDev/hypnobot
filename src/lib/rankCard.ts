@@ -1,4 +1,11 @@
-import { createCanvas, loadImage } from '@napi-rs/canvas';
+import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
+import { createRequire } from 'module';
+import path from 'path';
+
+const _require = createRequire(import.meta.url);
+const montserratDir = path.join(path.dirname(_require.resolve('@fontsource/montserrat/package.json')), 'files');
+GlobalFonts.registerFromPath(path.join(montserratDir, 'montserrat-latin-400-normal.woff2'), 'Montserrat');
+GlobalFonts.registerFromPath(path.join(montserratDir, 'montserrat-latin-700-normal.woff2'), 'Montserrat');
 
 interface RankCardOptions {
 	username: string;
@@ -47,7 +54,7 @@ export async function generateRankCard(opts: RankCardOptions): Promise<Buffer> {
 		ctx.fillStyle = opts.color;
 		ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
 		ctx.fillStyle = '#ffffff';
-		ctx.font = `bold 48px Arial`;
+		ctx.font = `bold 48px Montserrat`;
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'middle';
 		ctx.fillText(opts.username[0]?.toUpperCase() ?? '?', cx, cy);
@@ -67,13 +74,13 @@ export async function generateRankCard(opts: RankCardOptions): Promise<Buffer> {
 	const badgeH = 28;
 
 	const rankLabel = `RANK #${opts.rank}`;
-	ctx.font = 'bold 13px Arial';
+	ctx.font = 'bold 13px Montserrat';
 	const rankW = ctx.measureText(rankLabel).width + 24;
 	ctx.fillStyle = 'rgba(255,255,255,0.1)';
 	ctx.roundRect(textX, badgeY, rankW, badgeH, 6);
 	ctx.fill();
 	ctx.fillStyle = opts.color;
-	ctx.font = 'bold 13px Arial';
+	ctx.font = 'bold 13px Montserrat';
 	ctx.fillText(rankLabel, textX + 12, badgeY + 19);
 
 	const levelLabel = `LEVEL ${opts.level}`;
@@ -85,13 +92,13 @@ export async function generateRankCard(opts: RankCardOptions): Promise<Buffer> {
 	ctx.fillText(levelLabel, textX + rankW + 22, badgeY + 19);
 
 	ctx.fillStyle = '#ffffff';
-	ctx.font = 'bold 26px Arial';
+	ctx.font = 'bold 26px Montserrat';
 	ctx.fillText(opts.username, textX, 100);
 
 	const progress = Math.min(opts.xp / opts.xpNeeded, 1);
 	const xpText = `${opts.xp.toLocaleString()} / ${opts.xpNeeded.toLocaleString()} XP`;
 	ctx.fillStyle = 'rgba(255,255,255,0.45)';
-	ctx.font = '13px Arial';
+	ctx.font = '13px Montserrat';
 	const xpMetrics = ctx.measureText(xpText);
 	ctx.fillText(xpText, W - xpMetrics.width - 25, 100);
 
@@ -127,7 +134,7 @@ export async function generateRankCard(opts: RankCardOptions): Promise<Buffer> {
 	}
 
 	ctx.fillStyle = 'rgba(255,255,255,0.3)';
-	ctx.font = '11px Arial';
+	ctx.font = '11px Montserrat';
 	ctx.fillText(`${Math.floor(progress * 100)}% to next level`, barX, barY + barH + 16);
 
 	return canvas.toBuffer('image/png');

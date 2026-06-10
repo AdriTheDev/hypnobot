@@ -1,7 +1,8 @@
-import { GuildChannel, DMChannel, EmbedBuilder, ChannelType, TextChannel, VoiceChannel } from 'discord.js';
+import { GuildChannel, DMChannel, EmbedBuilder, ChannelType, TextChannel, VoiceChannel, AuditLogEvent } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { sendLog } from '../../lib/logWebhook';
+import { fetchAuditExecutor } from '../../lib/modUtils';
 
 const event: EventFile = {
 	async execute(oldChannel: GuildChannel | DMChannel, newChannel: GuildChannel | DMChannel) {
@@ -72,6 +73,8 @@ const event: EventFile = {
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: newChannel.guild.id } });
 		if (!config?.serverLogChannel) return;
 
+		const executor = await fetchAuditExecutor(newChannel.guild, AuditLogEvent.ChannelUpdate, newChannel.id);
+
 		const embed = new EmbedBuilder()
 			.setTitle('Channel Updated')
 			.setColor(0xffc067)
@@ -84,6 +87,10 @@ const event: EventFile = {
 				]),
 			)
 			.setTimestamp();
+
+		if (executor) {
+			embed.addFields({ name: 'By', value: `${executor} (\`${executor.id}\`)`, inline: true });
+		}
 
 		await sendLog(newChannel.guild, config.serverLogChannel, embed);
 	},

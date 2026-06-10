@@ -1,7 +1,8 @@
-import { Role, EmbedBuilder } from 'discord.js';
+import { Role, EmbedBuilder, AuditLogEvent } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { sendLog } from '../../lib/logWebhook';
+import { fetchAuditExecutor } from '../../lib/modUtils';
 
 const event: EventFile = {
 	async execute(oldRole: Role, newRole: Role) {
@@ -33,6 +34,8 @@ const event: EventFile = {
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: newRole.guild.id } });
 		if (!config?.serverLogChannel) return;
 
+		const executor = await fetchAuditExecutor(newRole.guild, AuditLogEvent.RoleUpdate, newRole.id);
+
 		const embed = new EmbedBuilder()
 			.setTitle('Role Updated')
 			.setColor(newRole.color || 0xffc067)
@@ -53,6 +56,10 @@ const event: EventFile = {
 
 		if (removedPerms.length) {
 			embed.addFields({ name: 'Permissions Removed', value: removedPerms.join(', ') });
+		}
+
+		if (executor) {
+			embed.addFields({ name: 'By', value: `${executor} (\`${executor.id}\`)`, inline: true });
 		}
 
 		await sendLog(newRole.guild, config.serverLogChannel, embed);

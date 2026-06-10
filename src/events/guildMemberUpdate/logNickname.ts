@@ -1,7 +1,8 @@
-import { GuildMember, PartialGuildMember, EmbedBuilder } from 'discord.js';
+import { GuildMember, PartialGuildMember, EmbedBuilder, AuditLogEvent } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { sendLog } from '../../lib/logWebhook';
+import { fetchAuditExecutor } from '../../lib/modUtils';
 
 const event: EventFile = {
 	async execute(oldMember: GuildMember | PartialGuildMember, newMember: GuildMember) {
@@ -9,6 +10,8 @@ const event: EventFile = {
 
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: newMember.guild.id } });
 		if (!config?.memberLogChannel) return;
+
+		const executor = await fetchAuditExecutor(newMember.guild, AuditLogEvent.MemberUpdate, newMember.id);
 
 		const embed = new EmbedBuilder()
 			.setTitle('Nickname Changed')
@@ -20,6 +23,10 @@ const event: EventFile = {
 				{ name: 'After', value: newMember.nickname ?? '*None*', inline: true },
 			)
 			.setTimestamp();
+
+		if (executor && executor.id !== newMember.id) {
+			embed.addFields({ name: 'By', value: `${executor} (\`${executor.id}\`)`, inline: true });
+		}
 
 		await sendLog(newMember.guild, config.memberLogChannel, embed);
 	},

@@ -15,6 +15,7 @@
 		"prettier": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json,yml}\""
 	},
 	"dependencies": {
+		"@fontsource/montserrat": "^5.2.8",
 		"@napi-rs/canvas": "^1.0.0",
 		"@prisma/adapter-pg": "^7.8.0",
 		"@prisma/client": "^7.8.0",

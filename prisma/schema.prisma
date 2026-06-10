@@ -75,4 +75,6 @@ model GuildConfig {
   serverLogChannel  String?
   voiceLogChannel      String?
   publicModLogChannel  String?
+  leaderboardChannel   String?
+  leaderboardMessageId String?
 }

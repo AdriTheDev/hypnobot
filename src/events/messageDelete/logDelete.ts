@@ -1,7 +1,8 @@
-import { Message, PartialMessage, EmbedBuilder } from 'discord.js';
+import { Message, PartialMessage, EmbedBuilder, AuditLogEvent } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { sendLog } from '../../lib/logWebhook';
+import { fetchAuditEntry } from '../../lib/modUtils';
 
 const event: EventFile = {
 	async execute(message: Message | PartialMessage) {
@@ -15,6 +16,14 @@ const event: EventFile = {
 		const pkRes = await fetch(`https://api.pluralkit.me/v2/messages/${message.id}`).catch(() => null);
 		if (pkRes?.ok) return;
 
+		const entry = message.author
+			? await fetchAuditEntry(message.guild, AuditLogEvent.MessageDelete, message.author.id, {
+					maxAgeMs: 10000,
+					extraMatch: (e) => e.extra.channel.id === message.channelId,
+				})
+			: null;
+		const deletedBy = entry?.executor ?? null;
+
 		const embed = new EmbedBuilder()
 			.setTitle('Message Deleted')
 			.setColor(0xff6961)
@@ -25,6 +34,15 @@ const event: EventFile = {
 					inline: true,
 				},
 				{ name: 'Channel', value: `<#${message.channelId}>`, inline: true },
+				{
+					name: 'Deleted By',
+					value: deletedBy
+						? `${deletedBy} (\`${deletedBy.id}\`)`
+						: message.author
+							? `${message.author} (self)`
+							: 'Unknown',
+					inline: true,
+				},
 			)
 			.setFooter({ text: `Message ID: ${message.id}` })
 			.setTimestamp();

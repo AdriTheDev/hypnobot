@@ -1,4 +1,4 @@
-import { EmbedBuilder, Guild, User, TextChannel } from 'discord.js';
+import { EmbedBuilder, Guild, User, TextChannel, GuildAuditLogsEntry, AuditLogEvent } from 'discord.js';
 import type { ColorResolvable } from 'discord.js';
 import { prisma } from './prisma';
 
@@ -27,6 +27,34 @@ const ACTION_COLOR: Record<PunishmentAction, number> = {
 	warn: 0xffc067,
 	unmute: 0x77dd77,
 };
+
+export async function fetchAuditEntry<T extends AuditLogEvent>(
+	guild: Guild,
+	type: T,
+	targetId: string,
+	options: { maxAgeMs?: number; extraMatch?: (entry: GuildAuditLogsEntry<T>) => boolean } = {},
+): Promise<GuildAuditLogsEntry<T> | null> {
+	const { maxAgeMs = 5000, extraMatch } = options;
+	const logs = await guild.fetchAuditLogs({ type, limit: 5 }).catch(() => null);
+	const entry = logs?.entries.find((e) => {
+		if (!e.executor || e.executor.id === guild.client.user?.id) return false;
+		if (!e.target || !('id' in (e.target as object)) || (e.target as { id: string }).id !== targetId) return false;
+		if (Date.now() - e.createdTimestamp > maxAgeMs) return false;
+		return !extraMatch || extraMatch(e as unknown as GuildAuditLogsEntry<T>);
+	});
+	return (entry as unknown as GuildAuditLogsEntry<T>) ?? null;
+}
+
+export async function fetchAuditExecutor<T extends AuditLogEvent>(
+	guild: Guild,
+	type: T,
+	targetId: string,
+	maxAgeMs = 5000,
+): Promise<User | null> {
+	const entry = await fetchAuditEntry(guild, type, targetId, { maxAgeMs });
+	if (!entry?.executor) return null;
+	return guild.client.users.fetch(entry.executor.id).catch(() => null);
+}
 
 export async function resolveReason(guildId: string, type: string, text: string): Promise<string> {
 	const alias = await prisma.guildAlias.findFirst({

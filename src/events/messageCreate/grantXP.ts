@@ -2,6 +2,7 @@ import type { Message } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { resolveLevel, randomXP } from '../../lib/levelingUtils';
+import { scheduleLeaderboardUpdate } from '../../lib/leaderboard';
 
 const xpCooldowns = new Map<string, number>();
 const XP_COOLDOWN_MS = 60_000;
@@ -45,6 +46,8 @@ const event: EventFile = {
 			});
 			await message.channel.send(`🎉 ${message.author} leveled up to **Level ${level}**!`).catch(() => null);
 		}
+
+		scheduleLeaderboardUpdate(message.guild);
 	},
 };
 

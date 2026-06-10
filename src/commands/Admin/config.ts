@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, ChannelType } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
+import { updateLeaderboard } from '../../lib/leaderboard';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -173,6 +174,18 @@ const command: Command = {
 			sub
 				.setName('public-mod-log')
 				.setDescription('Set or clear the public moderation log channel (bans, kicks, mutes, warns).')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear).')
+						.addChannelTypes(ChannelType.GuildText)
+						.setRequired(false),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('leaderboard-channel')
+				.setDescription('Set or clear the channel where the live leaderboard is posted.')
 				.addChannelOption((opt) =>
 					opt
 						.setName('channel')
@@ -376,6 +389,24 @@ const command: Command = {
 				update: { publicModLogChannel: channel?.id ?? null },
 			});
 			await interaction.editReply(channel ? `Public mod log set to ${channel}.` : 'Public mod log channel cleared.');
+			return;
+		}
+
+		if (sub === 'leaderboard-channel') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], leaderboardChannel: channel?.id ?? null, leaderboardMessageId: null },
+				update: { leaderboardChannel: channel?.id ?? null, leaderboardMessageId: null },
+			});
+
+			if (channel) {
+				await interaction.editReply(`Leaderboard channel set to ${channel}. Posting initial leaderboard...`);
+				await updateLeaderboard(interaction.guild!);
+				await interaction.editReply(`Leaderboard channel set to ${channel}.`);
+			} else {
+				await interaction.editReply('Leaderboard channel cleared.');
+			}
 		}
 	},
 };

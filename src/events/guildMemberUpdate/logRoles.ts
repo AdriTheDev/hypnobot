@@ -1,7 +1,8 @@
-import { GuildMember, PartialGuildMember, EmbedBuilder } from 'discord.js';
+import { GuildMember, PartialGuildMember, EmbedBuilder, AuditLogEvent } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { sendLog } from '../../lib/logWebhook';
+import { fetchAuditExecutor } from '../../lib/modUtils';
 
 const event: EventFile = {
 	async execute(oldMember: GuildMember | PartialGuildMember, newMember: GuildMember) {
@@ -12,6 +13,8 @@ const event: EventFile = {
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: newMember.guild.id } });
 		if (!config?.memberLogChannel) return;
 
+		const executor = await fetchAuditExecutor(newMember.guild, AuditLogEvent.MemberRoleUpdate, newMember.id);
+
 		const embed = new EmbedBuilder()
 			.setTitle('Roles Updated')
 			.setColor(0xb4a7d6)
@@ -21,6 +24,10 @@ const event: EventFile = {
 
 		if (added.size) embed.addFields({ name: 'Added', value: added.map((r) => r.toString()).join(', '), inline: true });
 		if (removed.size) embed.addFields({ name: 'Removed', value: removed.map((r) => r.toString()).join(', '), inline: true });
+
+		if (executor) {
+			embed.addFields({ name: 'By', value: `${executor} (\`${executor.id}\`)`, inline: true });
+		}
 
 		await sendLog(newMember.guild, config.memberLogChannel, embed);
 	},
