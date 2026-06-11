@@ -1,6 +1,7 @@
 import { GuildMember, PartialGuildMember, ChannelType, TextChannel, ForumChannel, MessageType } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
+import { botDeletedMessages } from '../../lib/botDeletedMessages';
 
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -20,14 +21,14 @@ async function deleteMessagesInChannel(channel: TextChannel, userId: string): Pr
 		if (recent.size > 1) {
 			await channel.bulkDelete(recent).catch(() => null);
 		} else if (recent.size === 1) {
-			await recent
-				.first()!
-				.delete()
-				.catch(() => null);
+			const msg = recent.first()!;
+			botDeletedMessages.add(msg.id);
+			await msg.delete().catch(() => { botDeletedMessages.delete(msg.id); });
 		}
 
 		for (const [, msg] of old) {
-			await msg.delete().catch(() => null);
+			botDeletedMessages.add(msg.id);
+			await msg.delete().catch(() => { botDeletedMessages.delete(msg.id); });
 		}
 
 		before = messages.last()?.id;
@@ -56,7 +57,8 @@ const event: EventFile = {
 			const messages = await systemChannel.messages.fetch({ limit: 100 }).catch(() => null);
 			if (messages) {
 				const joinMessage = messages.find((m) => m.type === MessageType.UserJoin && m.author.id === member.id);
-				await joinMessage?.delete().catch(() => null);
+				if (joinMessage) botDeletedMessages.add(joinMessage.id);
+				await joinMessage?.delete().catch(() => { if (joinMessage) botDeletedMessages.delete(joinMessage.id); });
 			}
 		}
 
@@ -64,7 +66,8 @@ const event: EventFile = {
 			const welcomeChannel = member.guild.channels.cache.get(welcome.channelId);
 			if (welcomeChannel?.isTextBased()) {
 				const msg = await welcomeChannel.messages.fetch(welcome.messageId).catch(() => null);
-				await msg?.delete().catch(() => null);
+				if (msg) botDeletedMessages.add(msg.id);
+				await msg?.delete().catch(() => { if (msg) botDeletedMessages.delete(msg.id); });
 			}
 			await prisma.welcomeMessage
 				.delete({

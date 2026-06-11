@@ -1,11 +1,11 @@
 import { GuildMember } from 'discord.js';
 import type { EventFile } from '../../lib/types';
-import { sendWelcome } from '../../lib/memberActions';
+import { assignJoinRoles } from '../../lib/memberActions';
 
 const event: EventFile = {
 	async execute(member: GuildMember) {
 		if (member.pending) return;
-		await sendWelcome(member);
+		await assignJoinRoles(member);
 	},
 };
 

@@ -194,6 +194,23 @@ const command: Command = {
 						.setRequired(false),
 				),
 		)
+		.addSubcommandGroup((group) =>
+			group
+				.setName('join-role')
+				.setDescription('Manage roles automatically assigned when a member joins.')
+				.addSubcommand((sub) =>
+					sub
+						.setName('add')
+						.setDescription('Add a join role.')
+						.addRoleOption((opt) => opt.setName('role').setDescription('Role').setRequired(true)),
+				)
+				.addSubcommand((sub) =>
+					sub
+						.setName('remove')
+						.setDescription('Remove a join role.')
+						.addRoleOption((opt) => opt.setName('role').setDescription('Role').setRequired(true)),
+				),
+		)
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
 	async execute(interaction: ChatInputCommandInteraction) {
@@ -389,6 +406,36 @@ const command: Command = {
 				update: { publicModLogChannel: channel?.id ?? null },
 			});
 			await interaction.editReply(channel ? `Public mod log set to ${channel}.` : 'Public mod log channel cleared.');
+			return;
+		}
+
+		if (group === 'join-role') {
+			const role = interaction.options.getRole('role', true);
+
+			if (sub === 'add') {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (current?.joinRoles.includes(role.id)) {
+					await interaction.editReply(`${role} is already a join role.`);
+					return;
+				}
+				await prisma.guildConfig.upsert({
+					where: { guildId },
+					create: { guildId, noXpRoles: [], noXpChannels: [], joinRoles: [role.id] },
+					update: { joinRoles: { push: role.id } },
+				});
+				await interaction.editReply(`${role} added to join roles.`);
+			} else {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (!current?.joinRoles.includes(role.id)) {
+					await interaction.editReply(`${role} is not a join role.`);
+					return;
+				}
+				await prisma.guildConfig.update({
+					where: { guildId },
+					data: { joinRoles: current.joinRoles.filter((id) => id !== role.id) },
+				});
+				await interaction.editReply(`${role} removed from join roles.`);
+			}
 			return;
 		}
 

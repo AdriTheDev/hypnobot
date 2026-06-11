@@ -36,18 +36,13 @@ const event: EventFile = {
 					inline: true,
 				},
 				{ name: 'Channel', value: `<#${message.channelId}>`, inline: true },
-				{
-					name: 'Deleted By',
-					value: deletedBy
-						? `${deletedBy} (\`${deletedBy.id}\`)`
-						: message.author
-							? `${message.author} (self)`
-							: 'Unknown',
-					inline: true,
-				},
 			)
 			.setFooter({ text: `Message ID: ${message.id}` })
 			.setTimestamp();
+
+		if (deletedBy) {
+			embed.addFields({ name: 'Deleted By', value: `${deletedBy} (\`${deletedBy.id}\`)`, inline: true });
+		}
 
 		if (message.content) {
 			embed.addFields({ name: 'Content', value: message.content.slice(0, 1024) });
@@ -56,7 +51,7 @@ const event: EventFile = {
 		if (message.attachments.size) {
 			embed.addFields({
 				name: 'Attachments',
-				value: message.attachments.map((a) => a.name).join(', '),
+				value: message.attachments.map((a) => `[${a.name}](${a.url})`).join('\n'),
 			});
 		}
 

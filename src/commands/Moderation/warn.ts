@@ -104,6 +104,23 @@ const command: Command = {
 
 			await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
 			await interaction.editReply({ embeds: [embed] });
+
+			if (warningCount >= 4) {
+				const banReason =
+					'This is an automated ban as you have received 4 or more warnings against your account. If you believe this is a mistake or you wish to appeal it, visit https://appeal.gg/2BtqX2ZhCg';
+				await sendPunishmentDM(targetUser, { action: 'ban', guildName: interaction.guild!.name, reason: banReason, duration: 'Permanent' });
+				await interaction.guild!.bans.create(targetUser.id, { reason: banReason }).catch(() => null);
+				const banEmbed = buildModEmbed({
+					action: 'Member Banned (Auto)',
+					target: targetUser,
+					moderator: interaction.guild!.client.user!,
+					reason: banReason,
+					duration: 'Permanent',
+					color: 0xff6961,
+				});
+				await Promise.all([sendModLog(interaction.guild!, banEmbed), sendPublicModLog(interaction.guild!, banEmbed)]);
+			}
+
 			return;
 		}
 

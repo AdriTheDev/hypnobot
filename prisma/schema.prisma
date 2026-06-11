@@ -77,4 +77,5 @@ model GuildConfig {
   publicModLogChannel  String?
   leaderboardChannel   String?
   leaderboardMessageId String?
+  joinRoles            String[] @default([])
 }

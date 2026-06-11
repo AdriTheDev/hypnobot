@@ -54,6 +54,10 @@ const command: Command = {
 					name: '💬 Forums',
 					value: `**Managed Forums:** ${config?.forumChannels.length ? config.forumChannels.map(ch).join(', ') : none('None')}`,
 				},
+				{
+					name: '🎭 Join Roles',
+					value: `**Join Roles:** ${config?.joinRoles.length ? config.joinRoles.map(ro).join(', ') : none('None')}`,
+				},
 			)
 			.setTimestamp();
 

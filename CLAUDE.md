@@ -63,6 +63,10 @@ The `UserLevel` Prisma model stores lifetime `xp` and the last-known `level`. `r
 
 After any change to `prisma/schema.prisma`, run `npm run db:generate` then either `db:push` (dev, no migration history) or `db:migrate` (named migration). Import the Prisma client from `src/lib/prisma.ts`, never from the generated path directly.
 
+## Configuration commands
+
+Whenever a setting is added to or removed from `/config` (`src/commands/Admin/config.ts`), also update `/view-config` (`src/commands/Admin/view-config.ts`) to display it. Every field surfaced by `/config` must appear in `/view-config`.
+
 ## Code style
 
 No comments unless the reason behind something is genuinely non-obvious. Never add JSDoc blocks, section headers, or inline comments that describe what the code is doing — only write a comment if you would be explaining _why_.
@@ -75,5 +79,6 @@ No comments unless the reason behind something is genuinely non-obvious. Never a
 | `CLIENT_ID`     | Yes                | Application ID for command registration           |
 | `OWNER_IDS`     | Yes                | Comma-separated user IDs with owner access        |
 | `DATABASE_URL`  | Yes                | PostgreSQL connection string                      |
-| `DEV_MODE`      | No                 | Set `true` to register commands to a single guild |
-| `DEV_GUILD_ID`  | When DEV_MODE=true | Target guild for dev command registration         |
+| `DEV_MODE`           | No                 | Set `true` to register commands to a single guild      |
+| `DEV_GUILD_ID`       | When DEV_MODE=true | Target guild for dev command registration              |
+| `STATUS_WEBHOOK_URL` | No                 | Discord webhook URL for startup/shutdown/restart logs  |
