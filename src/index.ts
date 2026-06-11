@@ -38,6 +38,24 @@ const shutdown = async (signal: string) => {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
+process.on('unhandledRejection', (reason) => {
+	const message = reason instanceof Error ? `${reason.message}\n\`\`\`${reason.stack ?? ''}\`\`\`` : String(reason);
+	console.error('[unhandledRejection]', reason);
+	logStatus('Unhandled Rejection', message.slice(0, 2000), 0xff6961);
+});
+
+process.on('uncaughtException', (err) => {
+	const message = `${err.message}\n\`\`\`${err.stack ?? ''}\`\`\``;
+	console.error('[uncaughtException]', err);
+	logStatus('Uncaught Exception', message.slice(0, 2000), 0xff6961);
+});
+
+client.on('error', (err) => {
+	const message = `${err.message}\n\`\`\`${err.stack ?? ''}\`\`\``;
+	console.error('[client error]', err);
+	logStatus('Client Error', message.slice(0, 2000), 0xff6961);
+});
+
 (async () => {
 	await loadCommands(client);
 	await loadEvents(client);
