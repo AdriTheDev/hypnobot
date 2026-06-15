@@ -20,4 +20,4 @@ COPY --from=builder /app/src/generated ./src/generated
 COPY package.json tsconfig.json ./
 COPY src ./src
 USER node
-CMD ["node_modules/.bin/tsx", "src/index.ts"]
+CMD ["node", "--import", "node_modules/tsx/esm", "src/index.ts"]

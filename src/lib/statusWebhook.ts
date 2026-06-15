@@ -12,5 +12,5 @@ export async function logStatus(title: string, description: string, color: numbe
 	const wh = getClient();
 	if (!wh) return;
 	const embed = new EmbedBuilder().setTitle(title).setDescription(description).setColor(color).setTimestamp();
-	await wh.send({ embeds: [embed] }).catch(() => null);
+	await wh.send({ embeds: [embed] }).catch((err) => console.error('[statusWebhook]', err));
 }
