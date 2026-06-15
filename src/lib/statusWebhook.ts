@@ -8,9 +8,15 @@ function getClient(): WebhookClient | null {
 	return client;
 }
 
-export async function logStatus(title: string, description: string, color: number): Promise<void> {
+export async function logStatus(
+	title: string,
+	description: string,
+	color: number,
+	fields?: { name: string; value: string; inline?: boolean }[],
+): Promise<void> {
 	const wh = getClient();
 	if (!wh) return;
 	const embed = new EmbedBuilder().setTitle(title).setDescription(description).setColor(color).setTimestamp();
+	if (fields?.length) embed.addFields(fields);
 	await wh.send({ embeds: [embed] }).catch((err) => console.error('[statusWebhook]', err));
 }

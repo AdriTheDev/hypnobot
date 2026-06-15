@@ -3,9 +3,9 @@ export function xpForLevel(level: number): number {
 }
 
 export function totalXPForLevel(level: number): number {
-	let total = 0;
-	for (let i = 0; i < level; i++) total += xpForLevel(i);
-	return total;
+	if (level <= 0) return 0;
+	const n = level;
+	return Math.round((5 * n * (n - 1) * (2 * n - 1)) / 6 + 25 * n * (n - 1) + 100 * n);
 }
 
 export function resolveLevel(totalXP: number): {

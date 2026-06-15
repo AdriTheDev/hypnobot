@@ -79,7 +79,7 @@ const command: Command = {
 				data: { userId: targetUser.id, guildId, reason, moderatorId: interaction.user.id },
 			});
 
-			const warningCount = await prisma.warning.count({ where: { userId: targetUser.id, guildId } });
+			const warningCount = await prisma.warning.count({ where: { userId: targetUser.id, guildId, deletedAt: null } });
 
 			const dmSent = await sendPunishmentDM(targetUser, {
 				action: 'warn',
@@ -133,12 +133,12 @@ const command: Command = {
 			const id = interaction.options.getString('id', true);
 			const warning = await prisma.warning.findUnique({ where: { id } });
 
-			if (!warning || warning.guildId !== guildId) {
+			if (!warning || warning.guildId !== guildId || warning.deletedAt) {
 				await interaction.editReply('Warning not found.');
 				return;
 			}
 
-			await prisma.warning.delete({ where: { id } });
+			await prisma.warning.update({ where: { id }, data: { deletedAt: new Date() } });
 			await interaction.editReply(`Warning \`${id}\` removed.`);
 			return;
 		}
@@ -175,12 +175,12 @@ const command: Command = {
 			}
 
 			const warnings = await prisma.warning.findMany({
-				where: { userId: targetUser!.id, guildId },
+				where: { userId: targetUser!.id, guildId, deletedAt: null },
 				orderBy: { createdAt: 'desc' },
-				take: 10,
+				take: 25,
 			});
 
-			const total = await prisma.warning.count({ where: { userId: targetUser!.id, guildId } });
+			const total = await prisma.warning.count({ where: { userId: targetUser!.id, guildId, deletedAt: null } });
 
 			const embed = new EmbedBuilder()
 				.setTitle(`Warnings — ${targetUser!.username}`)

@@ -16,8 +16,8 @@ const event: EventFile = {
 
 		await prisma.userLevel.upsert({
 			where: { userId_guildId: { userId, guildId } },
-			create: { userId, guildId, xp: 0n, level: 0, messages: 1 },
-			update: { messages: { increment: 1 } },
+			create: { userId, guildId, xp: 0n, level: 0, messages: 1, lastMessageAt: new Date() },
+			update: { messages: { increment: 1 }, lastMessageAt: new Date() },
 		});
 
 		const config = await prisma.guildConfig.findUnique({ where: { guildId } });

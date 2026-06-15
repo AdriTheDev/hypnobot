@@ -10,13 +10,13 @@ const command: Command = {
 		await interaction.deferReply({ ephemeral: true });
 
 		const warnings = await prisma.warning.findMany({
-			where: { userId: interaction.user.id, guildId: interaction.guildId! },
+			where: { userId: interaction.user.id, guildId: interaction.guildId!, deletedAt: null },
 			orderBy: { createdAt: 'desc' },
-			take: 10,
+			take: 25,
 		});
 
 		const total = await prisma.warning.count({
-			where: { userId: interaction.user.id, guildId: interaction.guildId! },
+			where: { userId: interaction.user.id, guildId: interaction.guildId!, deletedAt: null },
 		});
 
 		const embed = new EmbedBuilder()

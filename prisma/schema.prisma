@@ -8,24 +8,26 @@ datasource db {
 }
 
 model UserLevel {
-  id       String @id @default(cuid())
-  userId   String
-  guildId  String
-  xp       BigInt @default(0)
-  level    Int    @default(0)
-  messages Int    @default(0)
+  id            String    @id @default(cuid())
+  userId        String
+  guildId       String
+  xp            BigInt    @default(0)
+  level         BigInt    @default(0)
+  messages      Int       @default(0)
+  lastMessageAt DateTime?
 
   @@unique([userId, guildId])
   @@index([guildId, xp(sort: Desc)])
 }
 
 model Warning {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
   guildId     String
   reason      String
   moderatorId String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
 
   @@index([userId, guildId])
 }
@@ -79,4 +81,25 @@ model GuildConfig {
   leaderboardMessageId String?
   joinRoles            String[] @default([])
   xpEnabled            Boolean  @default(true)
+  restoreRoles         Boolean  @default(false)
+}
+
+model UserNote {
+  id          String   @id @default(cuid())
+  userId      String
+  guildId     String
+  content     String
+  authorId    String
+  createdAt   DateTime @default(now())
+
+  @@index([userId, guildId])
+}
+
+model RoleSnapshot {
+  userId  String
+  guildId String
+  roleIds String[]
+  savedAt DateTime @default(now())
+
+  @@id([userId, guildId])
 }

@@ -200,6 +200,12 @@ const command: Command = {
 				.setDescription('Enable or disable XP gain for the server.')
 				.addBooleanOption((opt) => opt.setName('enabled').setDescription('True to enable, false to disable.').setRequired(true)),
 		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('restore-roles')
+				.setDescription('Enable or disable restoring roles when a member rejoins.')
+				.addBooleanOption((opt) => opt.setName('enabled').setDescription('True to enable, false to disable.').setRequired(true)),
+		)
 		.addSubcommandGroup((group) =>
 			group
 				.setName('join-role')
@@ -453,6 +459,19 @@ const command: Command = {
 				update: { xpEnabled: enabled },
 			});
 			await interaction.editReply(enabled ? 'XP is now **enabled** for this server.' : 'XP is now **disabled** for this server.');
+			return;
+		}
+
+		if (sub === 'restore-roles') {
+			const enabled = interaction.options.getBoolean('enabled', true);
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], restoreRoles: enabled },
+				update: { restoreRoles: enabled },
+			});
+			await interaction.editReply(
+				enabled ? 'Role restore on rejoin is now **enabled**.' : 'Role restore on rejoin is now **disabled**.',
+			);
 			return;
 		}
 

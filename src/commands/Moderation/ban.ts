@@ -2,6 +2,7 @@ import { AutocompleteInteraction, SlashCommandBuilder, PermissionFlagsBits, Chat
 import type { Command } from '../../lib/types';
 import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
+import { scheduleTempBan } from '../../lib/tempBanScheduler';
 import ms, { StringValue } from 'ms';
 
 const command: Command = {
@@ -73,21 +74,13 @@ const command: Command = {
 		});
 
 		if (durationMs) {
-			await prisma.tempBan.upsert({
+			const expiresAt = new Date(Date.now() + durationMs);
+			const ban = await prisma.tempBan.upsert({
 				where: { userId_guildId: { userId: targetUser.id, guildId: interaction.guildId! } },
-				create: {
-					userId: targetUser.id,
-					guildId: interaction.guildId!,
-					reason,
-					moderatorId: interaction.user.id,
-					expiresAt: new Date(Date.now() + durationMs),
-				},
-				update: {
-					reason,
-					moderatorId: interaction.user.id,
-					expiresAt: new Date(Date.now() + durationMs),
-				},
+				create: { userId: targetUser.id, guildId: interaction.guildId!, reason, moderatorId: interaction.user.id, expiresAt },
+				update: { reason, moderatorId: interaction.user.id, expiresAt },
 			});
+			scheduleTempBan(interaction.client, ban);
 		}
 
 		const embed = buildModEmbed({

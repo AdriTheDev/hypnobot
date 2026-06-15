@@ -59,6 +59,10 @@ const command: Command = {
 					name: '🎭 Join Roles',
 					value: `**Join Roles:** ${config?.joinRoles.length ? config.joinRoles.map(ro).join(', ') : none('None')}`,
 				},
+				{
+					name: '🔁 Role Restore',
+					value: `**Restore Roles on Rejoin:** ${config?.restoreRoles ? '✅ Enabled' : '❌ Disabled'}`,
+				},
 			)
 			.setTimestamp();
 

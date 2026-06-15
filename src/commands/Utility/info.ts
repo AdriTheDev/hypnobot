@@ -34,7 +34,7 @@ const command: Command = {
 				.addFields(
 					{
 						name: 'Uptime',
-						value: `<t:${Math.floor((Date.now() - client.uptime!) / 1000)}:R>`,
+						value: `<t:${Math.floor(client.readyTimestamp! / 1000)}:R>`,
 						inline: true,
 					},
 					{
