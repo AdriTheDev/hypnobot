@@ -33,6 +33,7 @@ export async function assignJoinRoles(member: GuildMember): Promise<void> {
 	const roles = config.joinRoles.filter((id) => member.guild.roles.cache.has(id));
 	if (!roles.length) return;
 
-	const fresh = await member.fetch();
-	await fresh.roles.add(roles).catch(() => null);
+	for (const roleId of roles) {
+		await member.roles.add(roleId).catch(() => null);
+	}
 }
