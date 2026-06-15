@@ -8,7 +8,7 @@ const event: EventFile = {
 		if (!newMessage.guild || newMessage.author?.bot || newMessage.webhookId) return;
 		const before = oldMessage.content ?? null;
 		const after = newMessage.content ?? null;
-		if (before === after || !after) return;
+		if (!before || before === after || !after) return;
 
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: newMessage.guild.id } });
 		if (!config?.messageLogChannel) return;

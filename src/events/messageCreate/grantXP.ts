@@ -21,6 +21,7 @@ const event: EventFile = {
 		});
 
 		const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+		if (config?.xpEnabled === false) return;
 		if (config?.noXpChannels.includes(message.channel.id)) return;
 		if (config?.noXpRoles.some((r) => message.member!.roles.cache.has(r))) return;
 

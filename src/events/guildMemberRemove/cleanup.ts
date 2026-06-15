@@ -23,12 +23,16 @@ async function deleteMessagesInChannel(channel: TextChannel, userId: string): Pr
 		} else if (recent.size === 1) {
 			const msg = recent.first()!;
 			botDeletedMessages.add(msg.id);
-			await msg.delete().catch(() => { botDeletedMessages.delete(msg.id); });
+			await msg.delete().catch(() => {
+				botDeletedMessages.delete(msg.id);
+			});
 		}
 
 		for (const [, msg] of old) {
 			botDeletedMessages.add(msg.id);
-			await msg.delete().catch(() => { botDeletedMessages.delete(msg.id); });
+			await msg.delete().catch(() => {
+				botDeletedMessages.delete(msg.id);
+			});
 		}
 
 		before = messages.last()?.id;
@@ -58,7 +62,9 @@ const event: EventFile = {
 			if (messages) {
 				const joinMessage = messages.find((m) => m.type === MessageType.UserJoin && m.author.id === member.id);
 				if (joinMessage) botDeletedMessages.add(joinMessage.id);
-				await joinMessage?.delete().catch(() => { if (joinMessage) botDeletedMessages.delete(joinMessage.id); });
+				await joinMessage?.delete().catch(() => {
+					if (joinMessage) botDeletedMessages.delete(joinMessage.id);
+				});
 			}
 		}
 
@@ -67,7 +73,9 @@ const event: EventFile = {
 			if (welcomeChannel?.isTextBased()) {
 				const msg = await welcomeChannel.messages.fetch(welcome.messageId).catch(() => null);
 				if (msg) botDeletedMessages.add(msg.id);
-				await msg?.delete().catch(() => { if (msg) botDeletedMessages.delete(msg.id); });
+				await msg?.delete().catch(() => {
+					if (msg) botDeletedMessages.delete(msg.id);
+				});
 			}
 			await prisma.welcomeMessage
 				.delete({

@@ -28,7 +28,9 @@ const event: EventFile = {
 		const prefix = mentions.length > 0 ? mentions.map((u) => `<@${u.id}>`).join(' ') + ' ' : '';
 
 		botDeletedMessages.add(message.id);
-		await message.delete().catch(() => { botDeletedMessages.delete(message.id); });
+		await message.delete().catch(() => {
+			botDeletedMessages.delete(message.id);
+		});
 		await message.channel.send(`${prefix}\n${trigger.value.replace(/\\n/g, '\n')}`);
 	},
 };

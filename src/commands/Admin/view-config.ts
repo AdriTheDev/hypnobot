@@ -46,6 +46,7 @@ const command: Command = {
 				{
 					name: '⭐ XP Settings',
 					value: [
+						`**XP Enabled:** ${config?.xpEnabled === false ? '❌ Disabled' : '✅ Enabled'}`,
 						`**No-XP Roles:** ${config?.noXpRoles.length ? config.noXpRoles.map(ro).join(', ') : none('None')}`,
 						`**No-XP Channels:** ${config?.noXpChannels.length ? config.noXpChannels.map(ch).join(', ') : none('None')}`,
 					].join('\n'),

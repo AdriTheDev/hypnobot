@@ -1,5 +1,15 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, TextChannel, ChannelType, User } from 'discord.js';
+import {
+	SlashCommandBuilder,
+	PermissionFlagsBits,
+	ChatInputCommandInteraction,
+	TextChannel,
+	ChannelType,
+	User,
+	EmbedBuilder,
+} from 'discord.js';
 import type { Command } from '../../lib/types';
+import { prisma } from '../../lib/prisma';
+import { sendLog } from '../../lib/logWebhook';
 
 async function deleteMessages(channel: TextChannel, amount: number, filterUser: User | null): Promise<number> {
 	let totalDeleted = 0;
@@ -82,6 +92,28 @@ const command: Command = {
 				? 'No deletable messages found (messages older than 14 days cannot be bulk deleted).'
 				: `Deleted **${deleted}** message(s) in ${channel}.`,
 		);
+
+		if (deleted > 0 && interaction.guild) {
+			const config = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guild.id } });
+			if (config?.modLogChannel) {
+				const embed = new EmbedBuilder()
+					.setTitle('Messages Purged')
+					.setColor(0xff6961)
+					.addFields(
+						{ name: 'Channel', value: `<#${channel.id}>`, inline: true },
+						{ name: 'Messages Deleted', value: `\`${deleted}\``, inline: true },
+						{ name: 'Moderator', value: `${interaction.user} (\`${interaction.user.id}\`)` },
+					)
+					.setFooter({ text: `Channel ID: ${channel.id}` })
+					.setTimestamp();
+
+				if (filterUser) {
+					embed.addFields({ name: 'Filtered User', value: `${filterUser} (\`${filterUser.id}\`)`, inline: true });
+				}
+
+				await sendLog(interaction.guild, config.modLogChannel, embed);
+			}
+		}
 	},
 };
 

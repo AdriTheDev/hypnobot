@@ -78,4 +78,5 @@ model GuildConfig {
   leaderboardChannel   String?
   leaderboardMessageId String?
   joinRoles            String[] @default([])
+  xpEnabled            Boolean  @default(true)
 }

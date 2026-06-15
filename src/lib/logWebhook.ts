@@ -18,7 +18,7 @@ export async function sendLog(guild: Guild, channelId: string, embed: EmbedBuild
 		} else {
 			const created = await textChannel
 				.createWebhook({
-					name: guild.client.user?.displayName ?? 'Bot Logs',
+					name: 'HypnoBot Logs',
 					avatar: guild.client.user?.displayAvatarURL(),
 				})
 				.catch(() => null);

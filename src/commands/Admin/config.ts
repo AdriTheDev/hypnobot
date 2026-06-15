@@ -194,6 +194,12 @@ const command: Command = {
 						.setRequired(false),
 				),
 		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('xp-enabled')
+				.setDescription('Enable or disable XP gain for the server.')
+				.addBooleanOption((opt) => opt.setName('enabled').setDescription('True to enable, false to disable.').setRequired(true)),
+		)
 		.addSubcommandGroup((group) =>
 			group
 				.setName('join-role')
@@ -436,6 +442,17 @@ const command: Command = {
 				});
 				await interaction.editReply(`${role} removed from join roles.`);
 			}
+			return;
+		}
+
+		if (sub === 'xp-enabled') {
+			const enabled = interaction.options.getBoolean('enabled', true);
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], xpEnabled: enabled },
+				update: { xpEnabled: enabled },
+			});
+			await interaction.editReply(enabled ? 'XP is now **enabled** for this server.' : 'XP is now **disabled** for this server.');
 			return;
 		}
 
