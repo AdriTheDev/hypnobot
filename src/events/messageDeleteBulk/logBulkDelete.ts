@@ -18,6 +18,14 @@ const event: EventFile = {
 
 		if (entry?.executor?.id === channel.guild.client.user?.id) return;
 
+		// Ban-triggered deletions don't produce a MessageBulkDelete audit entry — only MemberBanAdd.
+		// If there's no bulk-delete entry but a ban happened in the last 15s, this is ban cleanup.
+		if (!entry) {
+			const banLogs = await channel.guild.fetchAuditLogs({ type: AuditLogEvent.MemberBanAdd, limit: 5 }).catch(() => null);
+			const recentBan = banLogs?.entries.find((e) => Date.now() - e.createdTimestamp < 15000);
+			if (recentBan) return;
+		}
+
 		const deletedBy = entry?.executor ?? null;
 
 		const embed = new EmbedBuilder()

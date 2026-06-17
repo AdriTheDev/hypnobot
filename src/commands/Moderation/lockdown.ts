@@ -6,7 +6,17 @@ async function setAllChannels(guild: ChatInputCommandInteraction['guild'], allow
 	let affected = 0;
 	for (const [, channel] of channels) {
 		await channel.permissionOverwrites
-			.edit(guild!.roles.everyone, { SendMessages: allow ? null : false }, { reason })
+			.edit(
+				guild!.roles.everyone,
+				{
+					SendMessages: allow ? null : false,
+					AddReactions: allow ? null : false,
+					CreatePrivateThreads: allow ? null : false,
+					CreatePublicThreads: allow ? null : false,
+					SendMessagesInThreads: allow ? null : false,
+				},
+				{ reason },
+			)
 			.catch(() => null);
 		affected++;
 	}
@@ -36,6 +46,9 @@ const command: Command = {
 
 		const sub = interaction.options.getSubcommand();
 		const reason = interaction.options.getString('reason', true);
+
+		const currentChannel = interaction.channel as TextChannel;
+
 		const locking = sub === 'lock';
 
 		await setAllChannels(interaction.guild!, !locking, reason);
@@ -49,7 +62,7 @@ const command: Command = {
 			})
 			.setTimestamp();
 
-		await interaction.editReply({ embeds: [embed] });
+		await Promise.all([interaction.editReply({ embeds: [embed] }), currentChannel.send({ embeds: [embed] }).catch(() => null)]);
 	},
 };
 
