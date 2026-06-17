@@ -5,19 +5,23 @@ async function setAllChannels(guild: ChatInputCommandInteraction['guild'], allow
 	const channels = guild!.channels.cache.filter((c) => c.type === ChannelType.GuildText) as Map<string, TextChannel>;
 	let affected = 0;
 	for (const [, channel] of channels) {
-		await channel.permissionOverwrites
-			.edit(
-				guild!.roles.everyone,
-				{
-					SendMessages: allow ? null : false,
-					AddReactions: allow ? null : false,
-					CreatePrivateThreads: allow ? null : false,
-					CreatePublicThreads: allow ? null : false,
-					SendMessagesInThreads: allow ? null : false,
-				},
-				{ reason },
-			)
-			.catch(() => null);
+		if (allow) {
+			await channel.lockPermissions().catch(() => null);
+		} else {
+			await channel.permissionOverwrites
+				.edit(
+					guild!.roles.everyone,
+					{
+						SendMessages: false,
+						AddReactions: false,
+						CreatePrivateThreads: false,
+						CreatePublicThreads: false,
+						SendMessagesInThreads: false,
+					},
+					{ reason },
+				)
+				.catch(() => null);
+		}
 		affected++;
 	}
 	return affected;
