@@ -44,7 +44,7 @@ Events live in `src/events/<eventName>/`. The folder name is the exact Discord.j
 XP is granted in `src/events/messageCreate/grantXP.ts` — 15–25 XP per message, with a 60-second per-user/guild in-memory cooldown that resets on restart. The formula for XP required to advance from one level to the next is:
 
 ```
-xpForLevel(n) = 5n² + 50n + 100
+xpForLevel(n) = 5n² + 75n + 150
 ```
 
 The `UserLevel` Prisma model stores lifetime `xp` and the last-known `level`. `resolveLevel(totalXP)` in `src/lib/levelingUtils.ts` recomputes level and within-level progress from raw XP on demand.

@@ -80,8 +80,9 @@ model GuildConfig {
   leaderboardChannel   String?
   leaderboardMessageId String?
   joinRoles            String[] @default([])
-  xpEnabled            Boolean  @default(true)
-  restoreRoles         Boolean  @default(false)
+  xpEnabled               Boolean  @default(true)
+  restoreRoles            Boolean  @default(false)
+  lockdownExemptChannels  String[] @default([])
 }
 
 model UserNote {
@@ -100,6 +101,17 @@ model RoleSnapshot {
   guildId String
   roleIds String[]
   savedAt DateTime @default(now())
+
+  @@id([userId, guildId])
+}
+
+model SuspendedUser {
+  userId      String
+  guildId     String
+  roleIds     String[]
+  moderatorId String
+  reason      String
+  suspendedAt DateTime @default(now())
 
   @@id([userId, guildId])
 }

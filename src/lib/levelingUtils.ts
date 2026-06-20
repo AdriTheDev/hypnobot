@@ -1,11 +1,11 @@
 export function xpForLevel(level: number): number {
-	return 5 * level * level + 50 * level + 100;
+	return 5 * level * level + 75 * level + 150;
 }
 
 export function totalXPForLevel(level: number): number {
 	if (level <= 0) return 0;
 	const n = level;
-	return Math.round((5 * n * (n - 1) * (2 * n - 1)) / 6 + 25 * n * (n - 1) + 100 * n);
+	return Math.round((5 * n * (n - 1) * (2 * n - 1)) / 6 + (75 * n * (n - 1)) / 2 + 150 * n);
 }
 
 export function resolveLevel(totalXP: number): {

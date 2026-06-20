@@ -223,6 +223,35 @@ const command: Command = {
 						.addRoleOption((opt) => opt.setName('role').setDescription('Role').setRequired(true)),
 				),
 		)
+		.addSubcommandGroup((group) =>
+			group
+				.setName('lockdown-exempt')
+				.setDescription('Manage channels/categories that are skipped during server lockdown.')
+				.addSubcommand((sub) =>
+					sub
+						.setName('add')
+						.setDescription('Exempt a channel or category from lockdown.')
+						.addChannelOption((opt) =>
+							opt
+								.setName('channel')
+								.setDescription('Channel or category to exempt')
+								.addChannelTypes(ChannelType.GuildText, ChannelType.GuildCategory, ChannelType.GuildAnnouncement)
+								.setRequired(true),
+						),
+				)
+				.addSubcommand((sub) =>
+					sub
+						.setName('remove')
+						.setDescription('Remove a channel or category from lockdown exemptions.')
+						.addChannelOption((opt) =>
+							opt
+								.setName('channel')
+								.setDescription('Channel or category to remove')
+								.addChannelTypes(ChannelType.GuildText, ChannelType.GuildCategory, ChannelType.GuildAnnouncement)
+								.setRequired(true),
+						),
+				),
+		)
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
 	async execute(interaction: ChatInputCommandInteraction) {
@@ -447,6 +476,36 @@ const command: Command = {
 					data: { joinRoles: current.joinRoles.filter((id) => id !== role.id) },
 				});
 				await interaction.editReply(`${role} removed from join roles.`);
+			}
+			return;
+		}
+
+		if (group === 'lockdown-exempt') {
+			const channel = interaction.options.getChannel('channel', true);
+
+			if (sub === 'add') {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (current?.lockdownExemptChannels.includes(channel.id)) {
+					await interaction.editReply(`${channel} is already exempt from lockdown.`);
+					return;
+				}
+				await prisma.guildConfig.upsert({
+					where: { guildId },
+					create: { guildId, noXpRoles: [], noXpChannels: [], lockdownExemptChannels: [channel.id] },
+					update: { lockdownExemptChannels: { push: channel.id } },
+				});
+				await interaction.editReply(`${channel} added to lockdown exemptions.`);
+			} else {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (!current?.lockdownExemptChannels.includes(channel.id)) {
+					await interaction.editReply(`${channel} is not exempt from lockdown.`);
+					return;
+				}
+				await prisma.guildConfig.update({
+					where: { guildId },
+					data: { lockdownExemptChannels: current.lockdownExemptChannels.filter((id) => id !== channel.id) },
+				});
+				await interaction.editReply(`${channel} removed from lockdown exemptions.`);
 			}
 			return;
 		}

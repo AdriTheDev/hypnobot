@@ -63,6 +63,10 @@ const command: Command = {
 					name: '🔁 Role Restore',
 					value: `**Restore Roles on Rejoin:** ${config?.restoreRoles ? '✅ Enabled' : '❌ Disabled'}`,
 				},
+				{
+					name: '🔒 Lockdown',
+					value: `**Exempt Channels/Categories:** ${config?.lockdownExemptChannels.length ? config.lockdownExemptChannels.map(ch).join(', ') : none('None')}`,
+				},
 			)
 			.setTimestamp();
 

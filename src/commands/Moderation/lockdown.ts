@@ -1,10 +1,14 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, ChannelType, TextChannel } from 'discord.js';
 import type { Command } from '../../lib/types';
+import { prisma } from '../../lib/prisma';
 
-async function setAllChannels(guild: ChatInputCommandInteraction['guild'], allow: boolean, reason: string): Promise<number> {
+async function setAllChannels(guild: ChatInputCommandInteraction['guild'], allow: boolean, reason: string, exemptIds: string[]): Promise<number> {
 	const channels = guild!.channels.cache.filter((c) => c.type === ChannelType.GuildText) as Map<string, TextChannel>;
 	let affected = 0;
 	for (const [, channel] of channels) {
+		if (exemptIds.includes(channel.id) || (channel.parentId !== null && exemptIds.includes(channel.parentId))) {
+			continue;
+		}
 		if (allow) {
 			await channel.lockPermissions().catch(() => null);
 		} else {
@@ -55,7 +59,10 @@ const command: Command = {
 
 		const locking = sub === 'lock';
 
-		await setAllChannels(interaction.guild!, !locking, reason);
+		const config = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guildId! } });
+		const exemptIds = config?.lockdownExemptChannels ?? [];
+
+		await setAllChannels(interaction.guild!, !locking, reason, exemptIds);
 
 		const embed = new EmbedBuilder()
 			.setTitle(locking ? '🔒 Server Lockdown' : '🔓 Lockdown Lifted')
