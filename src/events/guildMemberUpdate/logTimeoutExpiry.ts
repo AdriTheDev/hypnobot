@@ -7,7 +7,7 @@ const event: EventFile = {
 		if (newMember.communicationDisabledUntil !== null) return;
 		if (oldMember.partial || !oldMember.communicationDisabledUntil) return;
 
-		// Manual unmute (bot command or Discord UI) removes an active timeout — skip
+		// Manual unmute (bot command or Discord UI) removes an active timeout - skip
 		if (oldMember.communicationDisabledUntil > new Date()) return;
 
 		const embed = new EmbedBuilder()

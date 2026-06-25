@@ -1,5 +1,5 @@
 import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
-import type { ExtendedClient, Command } from './lib/types';
+import type { ExtendedClient, Command, ContextMenuCommand } from './lib/types';
 import { loadCommands } from './handlers/commandHandler';
 import { loadEvents } from './handlers/eventHandler';
 import { logStatus } from './lib/statusWebhook';
@@ -26,11 +26,12 @@ const client = new Client({
 }) as ExtendedClient;
 
 client.commands = new Collection<string, Command>();
+client.contextMenuCommands = new Collection<string, ContextMenuCommand>();
 client.cooldowns = new Collection<string, Collection<string, number>>();
 
 const shutdown = async (signal: string) => {
 	console.log(`[${signal}] Shutting down...`);
-	await logStatus('Bot Stopped', `Received \`${signal}\` — shutting down.`, 0xff6961);
+	await logStatus('Bot Stopped', `Received \`${signal}\`, shutting down.`, 0xff6961);
 	client.destroy();
 	process.exit(0);
 };

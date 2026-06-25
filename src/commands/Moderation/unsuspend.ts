@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { buildModEmbed, sendModLog } from '../../lib/modUtils';
+import { buildModEmbed, sendModLog, sendPublicModLog } from '../../lib/modUtils';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -44,14 +44,18 @@ const command: Command = {
 		});
 
 		const embed = buildModEmbed({
-			action: '✅ Member Unsuspended',
+			action: 'Member Unsuspended',
 			target: target.user,
 			moderator: interaction.user,
 			reason,
 			color: 0x77dd77,
 		});
 
-		await Promise.all([interaction.editReply({ embeds: [embed] }), sendModLog(interaction.guild!, embed)]);
+		await Promise.all([
+			interaction.editReply({ embeds: [embed] }),
+			sendModLog(interaction.guild!, embed),
+			sendPublicModLog(interaction.guild!, embed),
+		]);
 	},
 };
 

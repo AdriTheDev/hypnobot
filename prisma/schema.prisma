@@ -15,6 +15,7 @@ model UserLevel {
   level         BigInt    @default(0)
   messages      Int       @default(0)
   lastMessageAt DateTime?
+  leftGuildAt   DateTime?
 
   @@unique([userId, guildId])
   @@index([guildId, xp(sort: Desc)])
@@ -83,6 +84,7 @@ model GuildConfig {
   xpEnabled               Boolean  @default(true)
   restoreRoles            Boolean  @default(false)
   lockdownExemptChannels  String[] @default([])
+  aiReportChannel         String?
 }
 
 model UserNote {
@@ -114,4 +116,35 @@ model SuspendedUser {
   suspendedAt DateTime @default(now())
 
   @@id([userId, guildId])
+}
+
+model AutomodFactor {
+  id      String @id @default(cuid())
+  guildId String
+  type    String
+  value   String
+  points  Int
+
+  @@unique([guildId, type, value])
+  @@index([guildId])
+}
+
+model AiReport {
+  id           String    @id @default(cuid())
+  guildId      String
+  channelId    String
+  messageId    String
+  messageUrl   String
+  authorId     String
+  logMessageId String?
+  reporterIds  String[]
+  aiVoters     String[]
+  notAiVoters  String[]
+  status       String    @default("pending")
+  createdAt    DateTime  @default(now())
+  resolvedAt   DateTime?
+  resolvedById String?
+
+  @@unique([guildId, messageId])
+  @@index([guildId, status])
 }

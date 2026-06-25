@@ -55,7 +55,7 @@ const command: Command = {
 			});
 
 			const embed = new EmbedBuilder()
-				.setTitle(`Notes — ${target.username}`)
+				.setTitle(`Notes: ${target.username}`)
 				.setColor(0xfd86f3)
 				.setFooter({ text: `${notes.length} note${notes.length !== 1 ? 's' : ''}` })
 				.setTimestamp();

@@ -75,7 +75,7 @@ const command: Command = {
 		await target.roles.set([suspendedRole], reason);
 
 		const embed = buildModEmbed({
-			action: '🚫 Member Suspended',
+			action: 'Member Suspended',
 			target: target.user,
 			moderator: interaction.user,
 			reason,

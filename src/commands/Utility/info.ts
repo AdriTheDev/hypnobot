@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder, Colors, ChatInputCommandInteraction, ChannelType, version as djsVersion } from 'discord.js';
 import { prisma } from '../../lib/prisma';
 import { resolveLevel } from '../../lib/levelingUtils';
+import { calculateRiskPoints, AUTOMOD_THRESHOLD } from '../../lib/automodUtils';
 import type { Command, ExtendedClient } from '../../lib/types';
 import { version } from '../../../package.json';
 
@@ -80,6 +81,8 @@ const command: Command = {
 				}),
 			]);
 
+			const riskScore = member ? await calculateRiskPoints(member) : null;
+
 			const embed = new EmbedBuilder()
 				.setColor(member?.displayHexColor && member.displayHexColor !== '#000000' ? member.displayHexColor : 0xfd86f3)
 				.setAuthor({
@@ -121,8 +124,8 @@ const command: Command = {
 						inline: true,
 					},
 					{
-						name: 'Highest Role',
-						value: `${member.roles.highest}`,
+						name: 'Risk Score',
+						value: `\`${riskScore}/${AUTOMOD_THRESHOLD}\``,
 						inline: true,
 					},
 					{

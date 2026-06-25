@@ -81,8 +81,8 @@ const event: EventFile = {
 			.addFields(
 				{ name: 'Channel', value: `${newChannel} (\`${newChannel.id}\`)` },
 				...changes.flatMap((c) => [
-					{ name: `${c.name} — Before`, value: c.before, inline: true },
-					{ name: `${c.name} — After`, value: c.after, inline: true },
+					{ name: `${c.name}: Before`, value: c.before, inline: true },
+					{ name: `${c.name}: After`, value: c.after, inline: true },
 					{ name: '​', value: '​', inline: true },
 				]),
 			)

@@ -23,7 +23,7 @@ export async function loadEvents(client: ExtendedClient): Promise<void> {
 			const eventFile: EventFile = mod.default ?? mod;
 
 			if (typeof eventFile.execute !== 'function') {
-				console.warn(`[Events] Skipping ${file} — missing "execute".`);
+				console.warn(`[Events] Skipping ${file} - missing "execute".`);
 				continue;
 			}
 

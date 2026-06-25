@@ -10,6 +10,8 @@ import type { Command } from '../../lib/types';
 import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
 
+const WARN_BAN_THRESHOLD = 4;
+
 const command: Command = {
 	data: new SlashCommandBuilder()
 		.setName('warn')
@@ -86,6 +88,7 @@ const command: Command = {
 				guildName: interaction.guild!.name,
 				reason,
 				warningId: warning.id,
+				warningsRemaining: Math.max(0, WARN_BAN_THRESHOLD - warningCount),
 			});
 
 			const embed = buildModEmbed({
@@ -105,7 +108,7 @@ const command: Command = {
 			await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
 			await interaction.editReply({ embeds: [embed] });
 
-			if (warningCount >= 4) {
+			if (warningCount >= WARN_BAN_THRESHOLD) {
 				const banReason =
 					'This is an automated ban as you have received 4 or more warnings against your account. If you believe this is a mistake or you wish to appeal it, visit https://appeal.gg/2BtqX2ZhCg';
 				await sendPunishmentDM(targetUser, {
@@ -183,7 +186,7 @@ const command: Command = {
 			const total = await prisma.warning.count({ where: { userId: targetUser!.id, guildId, deletedAt: null } });
 
 			const embed = new EmbedBuilder()
-				.setTitle(`Warnings — ${targetUser!.username}`)
+				.setTitle(`Warnings: ${targetUser!.username}`)
 				.setColor(0xff6961)
 				.setFooter({ text: `${total} total warning${total !== 1 ? 's' : ''}` })
 				.setTimestamp();

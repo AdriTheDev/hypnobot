@@ -8,3 +8,4 @@ services:
             OWNER_IDS: ${OWNER_IDS}
             DEV_MODE: false
             DATABASE_URL: ${DATABASE_URL}
+            STATUS_WEBHOOK_URL: ${STATUS_WEBHOOK_URL}

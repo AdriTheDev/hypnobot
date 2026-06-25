@@ -30,7 +30,7 @@ const command: Command = {
 		}
 
 		const embed = new EmbedBuilder()
-			.setTitle(filter ? `Commands — ${filter}` : 'All Commands')
+			.setTitle(filter ? `Commands: ${filter}` : 'All Commands')
 			.setColor(0xfd86f3)
 			.setFooter({
 				text: `${client.commands.size} command(s) loaded • Use /help [category] to filter`,

@@ -67,6 +67,10 @@ const command: Command = {
 					name: '🔒 Lockdown',
 					value: `**Exempt Channels/Categories:** ${config?.lockdownExemptChannels.length ? config.lockdownExemptChannels.map(ch).join(', ') : none('None')}`,
 				},
+				{
+					name: '🤖 AI Reports',
+					value: `**AI Report Channel:** ${config?.aiReportChannel ? ch(config.aiReportChannel) : none('Not set')}`,
+				},
 			)
 			.setTimestamp();
 

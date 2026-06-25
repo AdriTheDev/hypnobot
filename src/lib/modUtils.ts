@@ -105,11 +105,19 @@ export async function sendPunishmentDM(
 		reason: string;
 		duration?: string;
 		warningId?: string;
+		warningsRemaining?: number;
 	},
 ): Promise<boolean> {
 	const lines = [`**Reason:** ${options.reason}`];
 	if (options.duration) lines.push(`**Duration:** ${options.duration}`);
 	if (options.warningId) lines.push(`**Warning ID:** \`${options.warningId}\``);
+	if (options.warningsRemaining !== undefined) {
+		lines.push(
+			options.warningsRemaining > 0
+				? `**Warnings until automatic permanent ban:** ${options.warningsRemaining}`
+				: '**This warning has triggered an automatic permanent ban.**',
+		);
+	}
 
 	const emoji = ACTION_EMOJI[options.action];
 	const verb = ACTION_VERB[options.action];

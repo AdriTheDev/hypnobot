@@ -44,8 +44,8 @@ const event: EventFile = {
 
 		for (const c of changes) {
 			embed.addFields(
-				{ name: `${c.name} — Before`, value: c.before, inline: true },
-				{ name: `${c.name} — After`, value: c.after, inline: true },
+				{ name: `${c.name}: Before`, value: c.before, inline: true },
+				{ name: `${c.name}: After`, value: c.after, inline: true },
 				{ name: '​', value: '​', inline: true },
 			);
 		}

@@ -10,6 +10,24 @@ const event: EventFile = {
 			return;
 		}
 
+		if (interaction.isMessageContextMenuCommand()) {
+			const client = interaction.client as ExtendedClient;
+			const command = client.contextMenuCommands.get(interaction.commandName);
+			if (!command) return;
+			try {
+				await command.execute(interaction, client);
+			} catch (err) {
+				console.error(`[Context Menu Error] ${interaction.commandName}:`, err);
+				const msg = { content: 'An error occurred while running this command.', ephemeral: true };
+				if (interaction.deferred || interaction.replied) {
+					await interaction.followUp(msg).catch(() => null);
+				} else {
+					await interaction.reply(msg).catch(() => null);
+				}
+			}
+			return;
+		}
+
 		if (!interaction.isChatInputCommand()) return;
 
 		const client = interaction.client as ExtendedClient;

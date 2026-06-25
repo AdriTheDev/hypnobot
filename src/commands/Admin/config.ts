@@ -196,6 +196,18 @@ const command: Command = {
 		)
 		.addSubcommand((sub) =>
 			sub
+				.setName('ai-report-channel')
+				.setDescription('Set or clear the channel where AI media reports are posted for moderator review.')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear).')
+						.addChannelTypes(ChannelType.GuildText)
+						.setRequired(false),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
 				.setName('xp-enabled')
 				.setDescription('Enable or disable XP gain for the server.')
 				.addBooleanOption((opt) => opt.setName('enabled').setDescription('True to enable, false to disable.').setRequired(true)),
@@ -549,6 +561,16 @@ const command: Command = {
 			} else {
 				await interaction.editReply('Leaderboard channel cleared.');
 			}
+		}
+
+		if (sub === 'ai-report-channel') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], aiReportChannel: channel?.id ?? null },
+				update: { aiReportChannel: channel?.id ?? null },
+			});
+			await interaction.editReply(channel ? `AI report channel set to ${channel}.` : 'AI report channel cleared.');
 		}
 	},
 };
