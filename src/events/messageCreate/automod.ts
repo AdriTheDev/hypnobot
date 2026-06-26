@@ -44,7 +44,7 @@ const event: EventFile = {
 		if (channels.size >= CROSSCHAN_THRESHOLD) {
 			const toDelete = entry.messages;
 			tracker.delete(key);
-			for (const msg of toDelete) botDeletedMessages.add(msg.id);
+			// for (const msg of toDelete) botDeletedMessages.add(msg.id);
 			await Promise.all(toDelete.map((m) => m.delete().catch(() => botDeletedMessages.delete(m.id))));
 			await member.timeout(PERMANENT_TIMEOUT_MS, 'HypnoBot Automod: Cross-channel spam');
 			const embed = buildModEmbed({

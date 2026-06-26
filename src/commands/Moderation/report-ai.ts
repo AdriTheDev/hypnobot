@@ -1,7 +1,7 @@
-import { ContextMenuCommandBuilder, ApplicationCommandType, MessageContextMenuCommandInteraction, TextChannel } from 'discord.js';
+import { ContextMenuCommandBuilder, ApplicationCommandType, MessageContextMenuCommandInteraction, TextChannel, PermissionFlagsBits, GuildMember } from 'discord.js';
 import type { ContextMenuCommand } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { buildReportEmbed, buildReportButtons, AUTO_DELETE_THRESHOLD } from '../../lib/aiReportUtils';
+import { buildReportEmbed, buildReportButtons, AUTO_DELETE_THRESHOLD, MOD_VOTE_THRESHOLD } from '../../lib/aiReportUtils';
 import { scheduleAiReport } from '../../lib/aiReportScheduler';
 
 export default {
@@ -26,6 +26,7 @@ export default {
 
 		const message = interaction.targetMessage;
 		const reporterId = interaction.user.id;
+		const isMod = (interaction.member as GuildMember).permissions.has(PermissionFlagsBits.ManageMessages);
 
 		if (message.author.id === interaction.client.user?.id) {
 			await interaction.editReply('You cannot report bot messages.');
@@ -41,7 +42,10 @@ export default {
 				await interaction.editReply('This message has already been reviewed by moderators.');
 				return;
 			}
-			if (existing.reporterIds.includes(reporterId)) {
+			const alreadyVoted = isMod
+				? existing.aiVoters.includes(reporterId) || existing.notAiVoters.includes(reporterId)
+				: existing.reporterIds.includes(reporterId);
+			if (alreadyVoted) {
 				await interaction.editReply('You have already reported this message.');
 				return;
 			}
@@ -55,13 +59,13 @@ export default {
 				messageId: message.id,
 				messageUrl: message.url,
 				authorId: message.author.id,
-				reporterIds: [reporterId],
-				aiVoters: [],
+				reporterIds: isMod ? [] : [reporterId],
+				aiVoters: isMod ? [reporterId] : [],
 				notAiVoters: [],
 			},
-			update: {
-				reporterIds: { push: reporterId },
-			},
+			update: isMod
+				? { aiVoters: { push: reporterId } }
+				: { reporterIds: { push: reporterId } },
 		});
 
 		if (!existing) {
@@ -70,17 +74,30 @@ export default {
 
 		let finalStatus = report.status;
 
-		if (report.reporterIds.length >= AUTO_DELETE_THRESHOLD && finalStatus === 'pending') {
-			try {
-				await message.delete();
-			} catch {
-				// message may already be deleted
+		if (finalStatus === 'pending') {
+			if (isMod && report.aiVoters.length >= MOD_VOTE_THRESHOLD) {
+				try {
+					await message.delete();
+				} catch {
+					// message may already be deleted
+				}
+				await prisma.aiReport.update({
+					where: { id: report.id },
+					data: { status: 'confirmed', resolvedAt: new Date(), resolvedById: reporterId },
+				});
+				finalStatus = 'confirmed';
+			} else if (!isMod && report.reporterIds.length >= AUTO_DELETE_THRESHOLD) {
+				try {
+					await message.delete();
+				} catch {
+					// message may already be deleted
+				}
+				await prisma.aiReport.update({
+					where: { id: report.id },
+					data: { status: 'auto_deleted', resolvedAt: new Date() },
+				});
+				finalStatus = 'auto_deleted';
 			}
-			await prisma.aiReport.update({
-				where: { id: report.id },
-				data: { status: 'auto_deleted', resolvedAt: new Date() },
-			});
-			finalStatus = 'auto_deleted';
 		}
 
 		const reportData = { ...report, status: finalStatus, authorAvatarUrl: message.author.displayAvatarURL() };
@@ -103,7 +120,9 @@ export default {
 		await interaction.editReply(
 			finalStatus === 'auto_deleted'
 				? 'This message has been automatically removed after reaching the report threshold. Thank you.'
-				: 'Your report has been submitted to the moderation team. Thank you.',
+				: finalStatus === 'confirmed'
+					? 'Your vote has confirmed this as AI media and the message has been removed.'
+					: 'Your report has been submitted to the moderation team. Thank you.',
 		);
 	},
 } satisfies ContextMenuCommand;
