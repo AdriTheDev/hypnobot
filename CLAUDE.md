@@ -63,6 +63,50 @@ The `UserLevel` Prisma model stores lifetime `xp` and the last-known `level`. `r
 
 After any change to `prisma/schema.prisma`, run `npm run db:generate` then either `db:push` (dev, no migration history) or `db:migrate` (named migration). Import the Prisma client from `src/lib/prisma.ts`, never from the generated path directly.
 
+### Moderation stack
+
+All moderation commands share utilities from `src/lib/modUtils.ts`:
+
+- `buildModEmbed(options)` — constructs a standard mod-action embed (user, moderator, reason, optional duration).
+- `sendModLog(guild, embed)` — posts to the guild's `modLogChannel`.
+- `sendPublicModLog(guild, embed)` — strips the Moderator and Warning ID fields, then posts to `publicModLogChannel`.
+- `sendPunishmentDM(user, options)` — DMs the target with action details; returns `false` if DMs are closed.
+- `resolveReason(guildId, type, text)` — looks up a `GuildAlias` for the given type (`warn`, `kick`, `ban`, `mute`) and expands short aliases to their full text.
+- `fetchAuditEntry` / `fetchAuditExecutor` — fetches a recent audit log entry for a given action + target, used by log events to attribute bot-initiated actions to the responsible moderator.
+
+The `/warn` command auto-bans after a configurable threshold. `/suspend` and `/unsuspend` use a `Suspended` role (auto-created if missing) that strips all existing roles and restores them from the `SuspendedUser` model on unsuspend.
+
+### Automod system
+
+`src/lib/automodUtils.ts` implements a risk-point system that runs on `guildMemberAdd` and `guildMemberUpdate` (screening pass):
+
+- Static factors: no avatar, account age < 7 days, `word.word.1234`-style username, non-ASCII display name — each worth 1 point by default.
+- Configurable role factors stored in the `AutomodFactor` model, managed via `/automod role add/remove`.
+- When total points reach `AUTOMOD_THRESHOLD` (5), the member is automatically suspended via `runAutomodCheck()`.
+
+### Alias system
+
+The `GuildAlias` model serves two purposes, distinguished by `type`:
+
+- `warn / kick / ban / mute` — reason shortcuts. `resolveReason()` expands them transparently inside mod commands before storing or displaying the reason.
+- `trigger` — message commands. `handleTriggers.ts` watches `messageCreate`, matches the first word of a message against trigger aliases, deletes the original, and re-sends the trigger's value with any mentioned users prepended. Use `\n` in the value for line breaks.
+
+### Member cleanup on leave
+
+`src/events/guildMemberRemove/cleanup.ts` runs on every member departure and:
+1. Deletes the Discord system join message from the system channel (if present).
+2. Deletes the bot's stored welcome message (from `WelcomeMessage`) and removes the DB record.
+3. Deletes the member's posts in the configured `introChannel` (text or forum).
+4. Deletes the member's threads in each configured `forumChannels` entry.
+
+### Welcome/goodbye messages
+
+`src/lib/memberActions.ts` exports `resolvePlaceholders(template, member, guild)` which substitutes `{@user}`, `{username}`, `{displayname}`, `{membercount}`, and `{server}` in a template string. Both `sendWelcome()` and the goodbye event handler use this — falling back to hardcoded defaults when no custom message is configured in `GuildConfig`.
+
+### botDeletedMessages
+
+`src/lib/botDeletedMessages.ts` exports a TTL-keyed in-memory set. Any time the bot deletes a message itself, call `botDeletedMessages.add(messageId)` **before** the delete so that log events (`messageDelete`, `messageDeleteBulk`) can suppress the resulting noise. If the delete fails, call `botDeletedMessages.delete(messageId)` to clean up.
+
 ## Configuration commands
 
 Whenever a setting is added to or removed from `/config` (`src/commands/Admin/config.ts`), also update `/view-config` (`src/commands/Admin/view-config.ts`) to display it. Every field surfaced by `/config` must appear in `/view-config`.
@@ -73,12 +117,15 @@ No comments unless the reason behind something is genuinely non-obvious. Never a
 
 ## Environment variables
 
-| Variable        | Required           | Purpose                                           |
-| --------------- | ------------------ | ------------------------------------------------- |
-| `DISCORD_TOKEN` | Yes                | Bot token                                         |
-| `CLIENT_ID`     | Yes                | Application ID for command registration           |
-| `OWNER_IDS`     | Yes                | Comma-separated user IDs with owner access        |
-| `DATABASE_URL`  | Yes                | PostgreSQL connection string                      |
+| Variable             | Required           | Purpose                                                |
+| -------------------- | ------------------ | ------------------------------------------------------ |
+| `DISCORD_TOKEN`      | Yes                | Bot token                                              |
+| `CLIENT_ID`          | Yes                | Application ID for command registration                |
+| `OWNER_IDS`          | Yes                | Comma-separated user IDs with owner access             |
+| `DATABASE_URL`       | Yes                | PostgreSQL connection string                           |
 | `DEV_MODE`           | No                 | Set `true` to register commands to a single guild      |
 | `DEV_GUILD_ID`       | When DEV_MODE=true | Target guild for dev command registration              |
 | `STATUS_WEBHOOK_URL` | No                 | Discord webhook URL for startup/shutdown/restart logs  |
+| `MC_RCON_HOST`       | For `/whitelist`   | Hostname or IP of the Minecraft server                 |
+| `MC_RCON_PORT`       | No                 | RCON port (default: 25575)                             |
+| `MC_RCON_PASSWORD`   | For `/whitelist`   | RCON password set in server.properties                 |

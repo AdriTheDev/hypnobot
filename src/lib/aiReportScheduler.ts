@@ -21,8 +21,7 @@ async function expireReport(client: Client, reportId: string): Promise<void> {
 		if (!guild) return;
 
 		const channel =
-			guild.channels.cache.get(config.aiReportChannel) ??
-			(await guild.channels.fetch(config.aiReportChannel).catch(() => null));
+			guild.channels.cache.get(config.aiReportChannel) ?? (await guild.channels.fetch(config.aiReportChannel).catch(() => null));
 		if (!channel?.isTextBased()) return;
 
 		const logMessage = await (channel as TextChannel).messages.fetch(updated.logMessageId).catch(() => null);

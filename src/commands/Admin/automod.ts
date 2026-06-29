@@ -1,7 +1,14 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { AUTOMOD_THRESHOLD, DEFAULT_AVATAR_POINTS, NEW_ACCOUNT_DAYS, NEW_ACCOUNT_POINTS, SUSPICIOUS_USERNAME_POINTS, NON_ASCII_DISPLAY_NAME_POINTS } from '../../lib/automodUtils';
+import {
+	AUTOMOD_THRESHOLD,
+	DEFAULT_AVATAR_POINTS,
+	NEW_ACCOUNT_DAYS,
+	NEW_ACCOUNT_POINTS,
+	SUSPICIOUS_USERNAME_POINTS,
+	NON_ASCII_DISPLAY_NAME_POINTS,
+} from '../../lib/automodUtils';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -75,18 +82,14 @@ const command: Command = {
 					create: { guildId, type: 'role', value: role.id, points },
 					update: { points },
 				});
-				await interaction.editReply(
-					`${role} now adds **${points}** point${points !== 1 ? 's' : ''} to a member's risk score.`,
-				);
+				await interaction.editReply(`${role} now adds **${points}** point${points !== 1 ? 's' : ''} to a member's risk score.`);
 				return;
 			}
 
 			if (sub === 'remove') {
 				const role = interaction.options.getRole('role', true);
 				const deleted = await prisma.automodFactor.deleteMany({ where: { guildId, type: 'role', value: role.id } });
-				await interaction.editReply(
-					deleted.count === 0 ? `${role} is not a risk factor.` : `${role} removed from risk factors.`,
-				);
+				await interaction.editReply(deleted.count === 0 ? `${role} is not a risk factor.` : `${role} removed from risk factors.`);
 				return;
 			}
 		}

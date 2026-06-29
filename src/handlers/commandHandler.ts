@@ -18,7 +18,10 @@ export async function loadCommands(client: ExtendedClient): Promise<void> {
 
 		for (const file of files) {
 			const filePath = join(categoryPath, file);
-			const mod = (await import(pathToFileURL(filePath).href)) as { default?: Command | ContextMenuCommand } & (Command | ContextMenuCommand);
+			const mod = (await import(pathToFileURL(filePath).href)) as { default?: Command | ContextMenuCommand } & (
+				| Command
+				| ContextMenuCommand
+			);
 			const command: Command | ContextMenuCommand = mod.default ?? mod;
 
 			if (!('data' in command) || !('execute' in command)) {

@@ -4,9 +4,7 @@ import { prisma } from '../../lib/prisma';
 
 const event: EventFile = {
 	async execute(ban: GuildBan) {
-		await prisma.userLevel
-			.deleteMany({ where: { userId: ban.user.id, guildId: ban.guild.id } })
-			.catch(() => null);
+		await prisma.userLevel.deleteMany({ where: { userId: ban.user.id, guildId: ban.guild.id } }).catch(() => null);
 	},
 };
 

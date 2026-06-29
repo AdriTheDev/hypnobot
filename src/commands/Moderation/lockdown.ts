@@ -2,7 +2,12 @@ import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, 
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 
-async function setAllChannels(guild: ChatInputCommandInteraction['guild'], allow: boolean, reason: string, exemptIds: string[]): Promise<number> {
+async function setAllChannels(
+	guild: ChatInputCommandInteraction['guild'],
+	allow: boolean,
+	reason: string,
+	exemptIds: string[],
+): Promise<number> {
 	const channels = guild!.channels.cache.filter((c) => c.type === ChannelType.GuildText) as Map<string, TextChannel>;
 	let affected = 0;
 	for (const [, channel] of channels) {

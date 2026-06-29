@@ -112,6 +112,30 @@ const command: Command = {
 		)
 		.addSubcommand((sub) =>
 			sub
+				.setName('welcome-message')
+				.setDescription('Set or clear the custom welcome embed message. Omit to restore the default.')
+				.addStringOption((opt) =>
+					opt
+						.setName('message')
+						.setDescription('Template text. Placeholders: {username}, {@user}, {displayname}, {membercount}, {server}')
+						.setRequired(false)
+						.setMaxLength(1000),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('goodbye-message')
+				.setDescription('Set or clear the custom goodbye embed message. Omit to restore the default.')
+				.addStringOption((opt) =>
+					opt
+						.setName('message')
+						.setDescription('Template text. Placeholders: {username}, {displayname}, {membercount}, {server}')
+						.setRequired(false)
+						.setMaxLength(1000),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
 				.setName('intro-channel')
 				.setDescription('Set or clear the introduction channel. Posts here are deleted when a member leaves.')
 				.addChannelOption((opt) =>
@@ -393,6 +417,28 @@ const command: Command = {
 				update: { goodbyeChannel: channel?.id ?? null },
 			});
 			await interaction.editReply(channel ? `Goodbye channel set to ${channel}.` : 'Goodbye channel cleared.');
+			return;
+		}
+
+		if (sub === 'welcome-message') {
+			const message = interaction.options.getString('message');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], welcomeMessage: message ?? null },
+				update: { welcomeMessage: message ?? null },
+			});
+			await interaction.editReply(message ? `Welcome message set.` : 'Welcome message cleared (using default).');
+			return;
+		}
+
+		if (sub === 'goodbye-message') {
+			const message = interaction.options.getString('message');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], goodbyeMessage: message ?? null },
+				update: { goodbyeMessage: message ?? null },
+			});
+			await interaction.editReply(message ? `Goodbye message set.` : 'Goodbye message cleared (using default).');
 			return;
 		}
 

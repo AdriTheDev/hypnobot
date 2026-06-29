@@ -81,6 +81,8 @@ model GuildConfig {
   leaderboardChannel   String?
   leaderboardMessageId String?
   joinRoles            String[] @default([])
+  welcomeMessage          String?
+  goodbyeMessage          String?
   xpEnabled               Boolean  @default(true)
   restoreRoles            Boolean  @default(false)
   lockdownExemptChannels  String[] @default([])
@@ -113,9 +115,33 @@ model SuspendedUser {
   roleIds     String[]
   moderatorId String
   reason      String
-  suspendedAt DateTime @default(now())
+  suspendedAt DateTime  @default(now())
+  expiresAt   DateTime?
 
   @@id([userId, guildId])
+}
+
+model MinecraftWhitelist {
+  userId            String
+  guildId           String
+  minecraftUsername String
+  minecraftUuid     String
+  addedAt           DateTime @default(now())
+
+  @@id([userId, guildId])
+  @@unique([guildId, minecraftUsername])
+  @@index([guildId])
+}
+
+model AccountLink {
+  id      String @id @default(cuid())
+  guildId String
+  userId  String
+  altId   String
+
+  @@unique([guildId, userId, altId])
+  @@index([guildId, userId])
+  @@index([guildId, altId])
 }
 
 model AutomodFactor {

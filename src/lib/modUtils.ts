@@ -136,6 +136,13 @@ export async function sendPunishmentDM(
 	}
 }
 
+export async function getLinkedAccounts(guildId: string, userId: string): Promise<string[]> {
+	const links = await prisma.accountLink.findMany({
+		where: { guildId, OR: [{ userId }, { altId: userId }] },
+	});
+	return links.map((l) => (l.userId === userId ? l.altId : l.userId));
+}
+
 export async function sendModLog(guild: Guild, embed: EmbedBuilder): Promise<void> {
 	const config = await prisma.guildConfig.findUnique({
 		where: { guildId: guild.id },

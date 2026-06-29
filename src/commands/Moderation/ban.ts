@@ -1,6 +1,6 @@
 import { AutocompleteInteraction, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM } from '../../lib/modUtils';
+import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM, getLinkedAccounts } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
 import { scheduleTempBan } from '../../lib/tempBanScheduler';
 import ms, { StringValue } from 'ms';
@@ -92,7 +92,54 @@ const command: Command = {
 			color: 0xff6961,
 		});
 
-		if (!dmSent) embed.setFooter({ text: 'Could not send DM to the user.' });
+		const altIds = await getLinkedAccounts(interaction.guildId!, targetUser.id);
+		let altCount = 0;
+
+		for (const altId of altIds) {
+			try {
+				await interaction.guild!.bans.create(altId, {
+					reason: `[Alt of ${targetUser.username}] ${reason}`,
+					deleteMessageSeconds: 7 * 86400,
+				});
+				altCount++;
+
+				if (durationMs) {
+					const altExpiresAt = new Date(Date.now() + durationMs);
+					const altBan = await prisma.tempBan.upsert({
+						where: { userId_guildId: { userId: altId, guildId: interaction.guildId! } },
+						create: {
+							userId: altId,
+							guildId: interaction.guildId!,
+							reason,
+							moderatorId: interaction.user.id,
+							expiresAt: altExpiresAt,
+						},
+						update: { reason, moderatorId: interaction.user.id, expiresAt: altExpiresAt },
+					});
+					scheduleTempBan(interaction.client, altBan);
+				}
+
+				const altUser = await interaction.client.users.fetch(altId).catch(() => null);
+				if (altUser) {
+					const altEmbed = buildModEmbed({
+						action: 'Member Banned (Alt)',
+						target: altUser,
+						moderator: interaction.user,
+						reason: `[Alt of ${targetUser.username}] ${reason}`,
+						duration: durationLabel ?? 'Permanent',
+						color: 0xff6961,
+					});
+					await Promise.all([sendModLog(interaction.guild!, altEmbed), sendPublicModLog(interaction.guild!, altEmbed)]);
+				}
+			} catch {
+				// alt may already be banned or otherwise unbannable
+			}
+		}
+
+		const notes: string[] = [];
+		if (!dmSent) notes.push('Could not send DM to the user.');
+		if (altCount > 0) notes.push(`Also applied to ${altCount} linked alt(s).`);
+		if (notes.length) embed.setFooter({ text: notes.join(' ') });
 
 		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
 		await interaction.editReply({ embeds: [embed] });

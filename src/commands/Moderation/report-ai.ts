@@ -1,4 +1,11 @@
-import { ContextMenuCommandBuilder, ApplicationCommandType, MessageContextMenuCommandInteraction, TextChannel, PermissionFlagsBits, GuildMember } from 'discord.js';
+import {
+	ContextMenuCommandBuilder,
+	ApplicationCommandType,
+	MessageContextMenuCommandInteraction,
+	TextChannel,
+	PermissionFlagsBits,
+	GuildMember,
+} from 'discord.js';
 import type { ContextMenuCommand } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { buildReportEmbed, buildReportButtons, AUTO_DELETE_THRESHOLD, MOD_VOTE_THRESHOLD } from '../../lib/aiReportUtils';
@@ -63,9 +70,7 @@ export default {
 				aiVoters: isMod ? [reporterId] : [],
 				notAiVoters: [],
 			},
-			update: isMod
-				? { aiVoters: { push: reporterId } }
-				: { reporterIds: { push: reporterId } },
+			update: isMod ? { aiVoters: { push: reporterId } } : { reporterIds: { push: reporterId } },
 		});
 
 		if (!existing) {

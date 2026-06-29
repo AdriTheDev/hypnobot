@@ -38,7 +38,9 @@ const command: Command = {
 					name: '👋 Member Channels',
 					value: [
 						`**Welcome:** ${config?.welcomeChannel ? ch(config.welcomeChannel) : none('Not set')}`,
+						`**Welcome Message:** ${config?.welcomeMessage ? `\`${config.welcomeMessage}\`` : none('Default')}`,
 						`**Goodbye:** ${config?.goodbyeChannel ? ch(config.goodbyeChannel) : none('Not set')}`,
+						`**Goodbye Message:** ${config?.goodbyeMessage ? `\`${config.goodbyeMessage}\`` : none('Default')}`,
 						`**Introductions:** ${config?.introChannel ? ch(config.introChannel) : none('Not set')}`,
 						`**Leaderboard:** ${config?.leaderboardChannel ? ch(config.leaderboardChannel) : none('Not set')}`,
 					].join('\n'),

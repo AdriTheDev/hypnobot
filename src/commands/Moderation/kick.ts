@@ -1,6 +1,6 @@
 import { AutocompleteInteraction, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM } from '../../lib/modUtils';
+import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM, getLinkedAccounts } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
 
 const command: Command = {
@@ -65,7 +65,34 @@ const command: Command = {
 			color: 0xff6961,
 		});
 
-		if (!dmSent) embed.setFooter({ text: 'Could not send DM to the user.' });
+		const altIds = await getLinkedAccounts(interaction.guildId!, targetUser.id);
+		let altCount = 0;
+
+		for (const altId of altIds) {
+			try {
+				const altMember = await interaction.guild!.members.fetch(altId).catch(() => null);
+				if (!altMember || !altMember.kickable) continue;
+
+				await altMember.kick(`[Alt of ${targetUser.username}] ${reason}`);
+				altCount++;
+
+				const altEmbed = buildModEmbed({
+					action: 'Member Kicked (Alt)',
+					target: altMember.user,
+					moderator: interaction.user,
+					reason: `[Alt of ${targetUser.username}] ${reason}`,
+					color: 0xff6961,
+				});
+				await Promise.all([sendModLog(interaction.guild!, altEmbed), sendPublicModLog(interaction.guild!, altEmbed)]);
+			} catch {
+				// skip alts that can't be kicked
+			}
+		}
+
+		const notes: string[] = [];
+		if (!dmSent) notes.push('Could not send DM to the user.');
+		if (altCount > 0) notes.push(`Also applied to ${altCount} linked alt(s).`);
+		if (notes.length) embed.setFooter({ text: notes.join(' ') });
 
 		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
 		await interaction.editReply({ embeds: [embed] });
