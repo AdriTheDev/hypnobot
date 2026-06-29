@@ -7,7 +7,7 @@ export async function rconCommand(command: string): Promise<string> {
 	if (!host || !password) throw new Error('MC_RCON_HOST and MC_RCON_PASSWORD must be set.');
 
 	const port = parseInt(process.env.MC_RCON_PORT ?? '25575', 10);
-	const rcon = new Rcon({ host, port, password });
+	const rcon = new Rcon({ host, port, password, timeout: 5000 });
 
 	await rcon.connect();
 	try {
