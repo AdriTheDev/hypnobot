@@ -9,6 +9,7 @@ import {
 import type { Command } from '../../lib/types';
 import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM, getLinkedAccounts } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
+import { applyMcModAction } from '../../lib/mcRcon';
 
 const WARN_BAN_THRESHOLD = 4;
 
@@ -114,6 +115,7 @@ const command: Command = {
 					duration: 'Permanent',
 				});
 				await interaction.guild!.bans.create(targetUser.id, { reason: banReason }).catch(() => null);
+				await applyMcModAction(guildId, targetUser.id, 'ban', banReason).catch(() => null);
 				const banEmbed = buildModEmbed({
 					action: 'Member Banned (Auto)',
 					target: targetUser,
@@ -161,6 +163,7 @@ const command: Command = {
 						const banReason =
 							'This is an automated ban as you have received 4 or more warnings against your account. If you believe this is a mistake or you wish to appeal it, visit https://appeal.gg/2BtqX2ZhCg';
 						await interaction.guild!.bans.create(altId, { reason: banReason }).catch(() => null);
+						await applyMcModAction(guildId, altId, 'ban', banReason).catch(() => null);
 						const altBanEmbed = buildModEmbed({
 							action: 'Member Banned (Auto, Alt)',
 							target: altUser,

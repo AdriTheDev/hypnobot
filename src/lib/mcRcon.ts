@@ -1,4 +1,5 @@
 import { Rcon } from 'rcon-client';
+import { prisma } from './prisma';
 
 export async function rconCommand(command: string): Promise<string> {
 	const host = process.env.MC_RCON_HOST;
@@ -15,6 +16,37 @@ export async function rconCommand(command: string): Promise<string> {
 	} finally {
 		await rcon.end();
 	}
+}
+
+export async function applyMcModAction(
+	guildId: string,
+	userId: string,
+	action: 'ban' | 'kick' | 'suspend' | 'unban' | 'unsuspend',
+	reason = 'No reason provided',
+): Promise<string | null> {
+	const entry = await prisma.minecraftWhitelist.findUnique({
+		where: { userId_guildId: { userId, guildId } },
+	});
+	if (!entry) return null;
+
+	const name = entry.minecraftUsername;
+
+	if (action === 'ban') {
+		await rconCommand(`ban ${name} ${reason}`);
+		await rconCommand(`whitelist remove ${name}`);
+	} else if (action === 'kick') {
+		await rconCommand(`kick ${name} ${reason}`);
+	} else if (action === 'suspend') {
+		await rconCommand(`kick ${name} ${reason}`);
+		await rconCommand(`whitelist remove ${name}`);
+	} else if (action === 'unban') {
+		await rconCommand(`pardon ${name}`);
+		await rconCommand(`whitelist add ${name}`);
+	} else if (action === 'unsuspend') {
+		await rconCommand(`whitelist add ${name}`);
+	}
+
+	return name;
 }
 
 export async function fetchMojangProfile(username: string): Promise<{ id: string; name: string } | null> {

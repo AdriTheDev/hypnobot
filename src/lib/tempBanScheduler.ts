@@ -1,6 +1,7 @@
 import { Client, EmbedBuilder } from 'discord.js';
 import { prisma } from './prisma';
 import { sendModLog, sendPublicModLog } from './modUtils';
+import { applyMcModAction } from './mcRcon';
 
 export interface TempBanRecord {
 	id: string;
@@ -14,6 +15,7 @@ async function expireBan(client: Client, ban: TempBanRecord): Promise<void> {
 	try {
 		const guild = await client.guilds.fetch(ban.guildId);
 		await guild.bans.remove(ban.userId, 'Temporary ban expired.');
+		await applyMcModAction(ban.guildId, ban.userId, 'unban', 'Temporary ban expired.').catch(() => null);
 
 		const user = await client.users.fetch(ban.userId).catch(() => null);
 		if (user) {

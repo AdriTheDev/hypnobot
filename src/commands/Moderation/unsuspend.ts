@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, 
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { buildModEmbed, sendModLog, sendPublicModLog } from '../../lib/modUtils';
+import { applyMcModAction } from '../../lib/mcRcon';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -39,6 +40,14 @@ const command: Command = {
 		const roleIds = suspension.roleIds.filter((id) => interaction.guild!.roles.cache.has(id));
 		await target.roles.set(roleIds, reason);
 
+		let mcRestored: string | null = null;
+		let mcError = false;
+		try {
+			mcRestored = await applyMcModAction(interaction.guildId!, target.id, 'unsuspend', reason);
+		} catch {
+			mcError = true;
+		}
+
 		await prisma.suspendedUser.delete({
 			where: { userId_guildId: { userId: target.id, guildId: interaction.guildId! } },
 		});
@@ -50,6 +59,11 @@ const command: Command = {
 			reason,
 			color: 0x77dd77,
 		});
+
+		const notes: string[] = [];
+		if (mcRestored) notes.push(`Minecraft whitelist restored for \`${mcRestored}\`.`);
+		if (mcError) notes.push('Could not reach the Minecraft server.');
+		if (notes.length) embed.setFooter({ text: notes.join(' ') });
 
 		await Promise.all([
 			interaction.editReply({ embeds: [embed] }),

@@ -2,8 +2,7 @@ services:
     bot:
         image: ghcr.io/adrithedev/hypnobot:latest
         restart: unless-stopped
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
+        network_mode: host
         environment:
             DISCORD_TOKEN: ${DISCORD_TOKEN}
             CLIENT_ID: ${CLIENT_ID}
@@ -11,6 +10,6 @@ services:
             DEV_MODE: false
             DATABASE_URL: ${DATABASE_URL}
             STATUS_WEBHOOK_URL: ${STATUS_WEBHOOK_URL}
-            MC_RCON_HOST: host.docker.internal
+            MC_RCON_HOST: 127.0.0.1
             MC_RCON_PASSWORD: ${MC_RCON_PASSWORD}
             MC_RCON_PORT: ${MC_RCON_PORT}

@@ -2,6 +2,7 @@ import { AutocompleteInteraction, SlashCommandBuilder, PermissionFlagsBits, Chat
 import type { Command } from '../../lib/types';
 import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM, getLinkedAccounts } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
+import { applyMcModAction } from '../../lib/mcRcon';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -57,6 +58,14 @@ const command: Command = {
 
 		await member.kick(reason);
 
+		let mcKicked: string | null = null;
+		let mcReachable = true;
+		try {
+			mcKicked = await applyMcModAction(interaction.guildId!, targetUser.id, 'kick', reason);
+		} catch {
+			mcReachable = false;
+		}
+
 		const embed = buildModEmbed({
 			action: 'Member Kicked',
 			target: targetUser,
@@ -74,6 +83,7 @@ const command: Command = {
 				if (!altMember || !altMember.kickable) continue;
 
 				await altMember.kick(`[Alt of ${targetUser.username}] ${reason}`);
+				await applyMcModAction(interaction.guildId!, altId, 'kick', `[Alt of ${targetUser.username}] ${reason}`).catch(() => null);
 				altCount++;
 
 				const altEmbed = buildModEmbed({
@@ -92,6 +102,8 @@ const command: Command = {
 		const notes: string[] = [];
 		if (!dmSent) notes.push('Could not send DM to the user.');
 		if (altCount > 0) notes.push(`Also applied to ${altCount} linked alt(s).`);
+		if (mcKicked) notes.push(`Also kicked from Minecraft as \`${mcKicked}\`.`);
+		if (!mcReachable) notes.push('Could not reach the Minecraft server.');
 		if (notes.length) embed.setFooter({ text: notes.join(' ') });
 
 		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);

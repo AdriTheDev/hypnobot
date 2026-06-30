@@ -12,18 +12,21 @@ const command: Command = {
 				.setName('add')
 				.setDescription('Whitelist your Minecraft account on the server.')
 				.addStringOption((opt) =>
-					opt.setName('username').setDescription('Your Minecraft Java Edition username.').setRequired(true),
+					opt
+						.setName('username')
+						.setDescription('Your Minecraft Java Edition username.')
+						.setRequired(true)
+						.setMinLength(3)
+						.setMaxLength(16),
 				),
 		)
 		.addSubcommand((sub) =>
 			sub
 				.setName('remove')
-				.setDescription('Remove a member\'s Minecraft whitelist entry.')
+				.setDescription("Remove a member's Minecraft whitelist entry.")
 				.addUserOption((opt) => opt.setName('user').setDescription('Member to remove from the whitelist.').setRequired(true)),
 		)
-		.addSubcommand((sub) =>
-			sub.setName('list').setDescription('Show all whitelisted Minecraft accounts in this server.'),
-		),
+		.addSubcommand((sub) => sub.setName('list').setDescription('Show all whitelisted Minecraft accounts in this server.')),
 
 	async execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply({ ephemeral: true });
@@ -145,9 +148,7 @@ const command: Command = {
 			if (entries.length === 0) {
 				embed.setDescription('No accounts are whitelisted yet.');
 			} else {
-				embed.setDescription(
-					entries.map((e) => `<@${e.userId}> — \`${e.minecraftUsername}\``).join('\n'),
-				);
+				embed.setDescription(entries.map((e) => `<@${e.userId}> — \`${e.minecraftUsername}\``).join('\n'));
 			}
 
 			await interaction.editReply({ embeds: [embed] });

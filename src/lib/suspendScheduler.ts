@@ -1,6 +1,7 @@
 import { Client, EmbedBuilder } from 'discord.js';
 import { prisma } from './prisma';
 import { sendModLog, sendPublicModLog } from './modUtils';
+import { applyMcModAction } from './mcRcon';
 
 export interface SuspendedUserRecord {
 	userId: string;
@@ -26,6 +27,7 @@ async function expireSuspension(client: Client, record: SuspendedUserRecord): Pr
 		if (member && member.manageable) {
 			const roleIds = record.roleIds.filter((id) => guild.roles.cache.has(id));
 			await member.roles.set(roleIds, 'Temporary suspension expired.');
+			await applyMcModAction(record.guildId, record.userId, 'unsuspend', 'Temporary suspension expired.').catch(() => null);
 		}
 
 		const user = await client.users.fetch(record.userId).catch(() => null);

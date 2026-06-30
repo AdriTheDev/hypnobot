@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, 
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { buildModEmbed, sendModLog, sendPublicModLog, getLinkedAccounts } from '../../lib/modUtils';
+import { applyMcModAction } from '../../lib/mcRcon';
 import { scheduleSuspension } from '../../lib/suspendScheduler';
 import ms, { StringValue } from 'ms';
 
@@ -95,6 +96,14 @@ const command: Command = {
 		await target.roles.set([suspendedRole], reason);
 		scheduleSuspension(interaction.client, { ...record, expiresAt });
 
+		let mcSuspended: string | null = null;
+		let mcReachable = true;
+		try {
+			mcSuspended = await applyMcModAction(interaction.guildId!, target.id, 'suspend', reason);
+		} catch {
+			mcReachable = false;
+		}
+
 		const embed = buildModEmbed({
 			action: 'Member Suspended',
 			target: target.user,
@@ -131,6 +140,7 @@ const command: Command = {
 
 				await altMember.roles.set([suspendedRole!], reason);
 				scheduleSuspension(interaction.client, { ...altRecord, expiresAt });
+				await applyMcModAction(interaction.guildId!, altId, 'suspend', `[Alt of ${target.user.username}] ${reason}`).catch(() => null);
 				altCount++;
 
 				const altEmbed = buildModEmbed({
@@ -147,7 +157,11 @@ const command: Command = {
 			}
 		}
 
-		if (altCount > 0) embed.setFooter({ text: `Also applied to ${altCount} linked alt(s).` });
+		const notes: string[] = [];
+		if (altCount > 0) notes.push(`Also applied to ${altCount} linked alt(s).`);
+		if (mcSuspended) notes.push(`Also kicked and removed from Minecraft whitelist as \`${mcSuspended}\`.`);
+		if (!mcReachable) notes.push('Could not reach the Minecraft server.');
+		if (notes.length) embed.setFooter({ text: notes.join(' ') });
 
 		await Promise.all([
 			interaction.editReply({ embeds: [embed] }),

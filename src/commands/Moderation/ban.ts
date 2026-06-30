@@ -3,6 +3,7 @@ import type { Command } from '../../lib/types';
 import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM, getLinkedAccounts } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
 import { scheduleTempBan } from '../../lib/tempBanScheduler';
+import { applyMcModAction } from '../../lib/mcRcon';
 import ms, { StringValue } from 'ms';
 
 const command: Command = {
@@ -83,6 +84,14 @@ const command: Command = {
 			scheduleTempBan(interaction.client, ban);
 		}
 
+		let mcBanned: string | null = null;
+		let mcReachable = true;
+		try {
+			mcBanned = await applyMcModAction(interaction.guildId!, targetUser.id, 'ban', reason);
+		} catch {
+			mcReachable = false;
+		}
+
 		const embed = buildModEmbed({
 			action: 'Member Banned',
 			target: targetUser,
@@ -119,6 +128,8 @@ const command: Command = {
 					scheduleTempBan(interaction.client, altBan);
 				}
 
+				await applyMcModAction(interaction.guildId!, altId, 'ban', `[Alt of ${targetUser.username}] ${reason}`).catch(() => null);
+
 				const altUser = await interaction.client.users.fetch(altId).catch(() => null);
 				if (altUser) {
 					const altEmbed = buildModEmbed({
@@ -139,6 +150,8 @@ const command: Command = {
 		const notes: string[] = [];
 		if (!dmSent) notes.push('Could not send DM to the user.');
 		if (altCount > 0) notes.push(`Also applied to ${altCount} linked alt(s).`);
+		if (mcBanned) notes.push(`Also banned from Minecraft as \`${mcBanned}\`.`);
+		if (!mcReachable) notes.push('Could not reach the Minecraft server.');
 		if (notes.length) embed.setFooter({ text: notes.join(' ') });
 
 		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);

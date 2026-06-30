@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, 
 import type { Command } from '../../lib/types';
 import { buildModEmbed, resolveReason, sendModLog, sendPublicModLog } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
+import { applyMcModAction } from '../../lib/mcRcon';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -30,6 +31,14 @@ const command: Command = {
 			where: { userId, guildId: interaction.guildId! },
 		});
 
+		let mcPardoned: string | null = null;
+		let mcError = false;
+		try {
+			mcPardoned = await applyMcModAction(interaction.guildId!, userId, 'unban', reason);
+		} catch {
+			mcError = true;
+		}
+
 		const embed = buildModEmbed({
 			action: 'Member Unbanned',
 			target: ban.user,
@@ -37,6 +46,11 @@ const command: Command = {
 			reason,
 			color: 0x77dd77,
 		});
+
+		const notes: string[] = [];
+		if (mcPardoned) notes.push(`Minecraft ban also lifted and whitelist restored for \`${mcPardoned}\`.`);
+		if (mcError) notes.push('Could not reach the Minecraft server.');
+		if (notes.length) embed.setFooter({ text: notes.join(' ') });
 
 		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
 
