@@ -23,10 +23,10 @@ const command: Command = {
 		.addSubcommand((sub) =>
 			sub
 				.setName('list')
-				.setDescription('List all accounts linked to a user.')
-				.addUserOption((opt) => opt.setName('user').setDescription('User to look up.').setRequired(true)),
+				.setDescription('List alt links for a user, or all links in the server if no user is given.')
+				.addUserOption((opt) => opt.setName('user').setDescription('User to look up. Omit to list all.').setRequired(false)),
 		)
-		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
+		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
 	async execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply({ ephemeral: true });
@@ -75,23 +75,49 @@ const command: Command = {
 		}
 
 		if (sub === 'list') {
-			const user = interaction.options.getUser('user', true);
+			const user = interaction.options.getUser('user', false);
 
-			const links = await prisma.accountLink.findMany({
-				where: { guildId, OR: [{ userId: user.id }, { altId: user.id }] },
-			});
+			if (user) {
+				const links = await prisma.accountLink.findMany({
+					where: { guildId, OR: [{ userId: user.id }, { altId: user.id }] },
+				});
 
-			if (links.length === 0) {
-				await interaction.editReply(`${user.username} has no linked accounts.`);
+				if (links.length === 0) {
+					await interaction.editReply(`${user.username} has no linked accounts.`);
+					return;
+				}
+
+				const linkedIds = links.map((l) => (l.userId === user.id ? l.altId : l.userId));
+				const embed = new EmbedBuilder()
+					.setTitle(`Linked accounts: ${user.username}`)
+					.setDescription(linkedIds.map((id) => `<@${id}> (\`${id}\`)`).join('\n'))
+					.setColor(0x5865f2)
+					.setThumbnail(user.displayAvatarURL());
+
+				await interaction.editReply({ embeds: [embed] });
 				return;
 			}
 
-			const linkedIds = links.map((l) => (l.userId === user.id ? l.altId : l.userId));
+			const links = await prisma.accountLink.findMany({ where: { guildId } });
+
+			if (links.length === 0) {
+				await interaction.editReply('No alt links are recorded for this server.');
+				return;
+			}
+
+			const lines = links.map((l) => `<@${l.userId}> (\`${l.userId}\`) ↔ <@${l.altId}> (\`${l.altId}\`)`);
+			let description = lines.join('\n');
+			let truncated = false;
+			if (description.length > 4096) {
+				const cut = description.slice(0, 4096).lastIndexOf('\n');
+				description = description.slice(0, cut) + '\n*(list truncated)*';
+				truncated = true;
+			}
+
 			const embed = new EmbedBuilder()
-				.setTitle(`Linked accounts: ${user.username}`)
-				.setDescription(linkedIds.map((id) => `<@${id}> (\`${id}\`)`).join('\n'))
-				.setColor(0x5865f2)
-				.setThumbnail(user.displayAvatarURL());
+				.setTitle(`All alt links — ${links.length} pair${links.length === 1 ? '' : 's'}${truncated ? ' (truncated)' : ''}`)
+				.setDescription(description)
+				.setColor(0x5865f2);
 
 			await interaction.editReply({ embeds: [embed] });
 		}

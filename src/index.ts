@@ -28,7 +28,6 @@ const client = new Client({
 client.commands = new Collection<string, Command>();
 client.contextMenuCommands = new Collection<string, ContextMenuCommand>();
 client.cooldowns = new Collection<string, Collection<string, number>>();
-
 const shutdown = async (signal: string) => {
 	console.log(`[${signal}] Shutting down...`);
 	await logStatus('Bot Stopped', `Received \`${signal}\`, shutting down.`, 0xff6961);
