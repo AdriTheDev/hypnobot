@@ -73,6 +73,10 @@ const command: Command = {
 					name: '🤖 AI Reports',
 					value: `**AI Report Channel:** ${config?.aiReportChannel ? ch(config.aiReportChannel) : none('Not set')}`,
 				},
+				{
+					name: '🎙️ Voice',
+					value: `**Join-to-Create Channel:** ${config?.joinToCreateChannel ? ch(config.joinToCreateChannel) : none('Not set')}`,
+				},
 			)
 			.setTimestamp();
 

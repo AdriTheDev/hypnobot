@@ -3,6 +3,7 @@ import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { sendLog } from '../../lib/logWebhook';
 import { fetchAuditExecutor } from '../../lib/modUtils';
+import { botDeletedChannels } from '../../lib/botDeletedChannels';
 
 const CHANNEL_TYPE_NAMES: Partial<Record<ChannelType, string>> = {
 	[ChannelType.GuildText]: 'Text',
@@ -17,6 +18,7 @@ const CHANNEL_TYPE_NAMES: Partial<Record<ChannelType, string>> = {
 const event: EventFile = {
 	async execute(channel: GuildChannel | DMChannel) {
 		if (!('guild' in channel)) return;
+		if (botDeletedChannels.has(channel.id)) return;
 
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: channel.guild.id } });
 		if (!config?.serverLogChannel) return;

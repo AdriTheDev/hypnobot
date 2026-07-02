@@ -232,6 +232,18 @@ const command: Command = {
 		)
 		.addSubcommand((sub) =>
 			sub
+				.setName('join-to-create')
+				.setDescription('Set or clear the "Join to Create" trigger voice channel.')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Voice channel members join to create their own VC (omit to clear).')
+						.addChannelTypes(ChannelType.GuildVoice)
+						.setRequired(false),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
 				.setName('xp-enabled')
 				.setDescription('Enable or disable XP gain for the server.')
 				.addBooleanOption((opt) => opt.setName('enabled').setDescription('True to enable, false to disable.').setRequired(true)),
@@ -617,6 +629,17 @@ const command: Command = {
 				update: { aiReportChannel: channel?.id ?? null },
 			});
 			await interaction.editReply(channel ? `AI report channel set to ${channel}.` : 'AI report channel cleared.');
+			return;
+		}
+
+		if (sub === 'join-to-create') {
+			const channel = interaction.options.getChannel('channel');
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], joinToCreateChannel: channel?.id ?? null },
+				update: { joinToCreateChannel: channel?.id ?? null },
+			});
+			await interaction.editReply(channel ? `Join-to-Create trigger set to ${channel}.` : 'Join-to-Create channel cleared.');
 		}
 	},
 };

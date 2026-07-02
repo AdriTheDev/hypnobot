@@ -87,6 +87,7 @@ model GuildConfig {
   restoreRoles            Boolean  @default(false)
   lockdownExemptChannels  String[] @default([])
   aiReportChannel         String?
+  joinToCreateChannel     String?
 }
 
 model UserNote {
@@ -152,6 +153,18 @@ model AutomodFactor {
   points  Int
 
   @@unique([guildId, type, value])
+  @@index([guildId])
+}
+
+model JoinToCreateVC {
+  channelId     String   @id
+  guildId       String
+  ownerId       String
+  managerId     String
+  memberIds     String[]
+  bannedUserIds String[] @default([])
+  isGhosted     Boolean  @default(false)
+
   @@index([guildId])
 }
 
