@@ -53,8 +53,7 @@ const event: EventFile = {
 					}
 				} else {
 					const newMemberIds = vc.memberIds.filter((id) => id !== member.id);
-					const newManagerId =
-						vc.managerId === member.id && newMemberIds.length > 0 ? newMemberIds[0] : vc.managerId;
+					const newManagerId = vc.managerId === member.id && newMemberIds.length > 0 ? newMemberIds[0] : vc.managerId;
 
 					await prisma.joinToCreateVC.update({
 						where: { channelId: oldState.channelId },

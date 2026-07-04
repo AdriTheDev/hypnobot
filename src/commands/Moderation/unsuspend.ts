@@ -1,8 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { buildModEmbed, sendModLog, sendPublicModLog } from '../../lib/modUtils';
-import { applyMcModAction } from '../../lib/mcRcon';
+import { checkModerationPermissions, reversePunishment } from '../../lib/moderationActions';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -32,44 +31,34 @@ const command: Command = {
 			return;
 		}
 
-		if (!target.manageable) {
-			await interaction.editReply("I do not have permission to manage that member's roles.");
+		const moderatorMember = interaction.member as GuildMember;
+		const permCheck = checkModerationPermissions({
+			action: 'unsuspend',
+			guild: interaction.guild!,
+			moderatorMember,
+			target,
+			targetUser: target.user,
+		});
+		if (!permCheck.ok) {
+			await interaction.editReply(permCheck.message);
 			return;
 		}
 
-		const roleIds = suspension.roleIds.filter((id) => interaction.guild!.roles.cache.has(id));
-		await target.roles.set(roleIds, reason);
+		const result = await reversePunishment({
+			action: 'unsuspend',
+			guild: interaction.guild!,
+			targetUser: target.user,
+			targetMember: target,
+			moderator: { user: interaction.user, member: moderatorMember },
+			reason,
+		});
 
-		let mcRestored: string | null = null;
-		let mcError = false;
-		try {
-			mcRestored = await applyMcModAction(interaction.guildId!, target.id, 'unsuspend', reason);
-		} catch {
-			mcError = true;
+		if (!result.ok) {
+			await interaction.editReply(result.failureMessage ?? 'Could not unsuspend that member.');
+			return;
 		}
 
-		await prisma.suspendedUser.delete({
-			where: { userId_guildId: { userId: target.id, guildId: interaction.guildId! } },
-		});
-
-		const embed = buildModEmbed({
-			action: 'Member Unsuspended',
-			target: target.user,
-			moderator: interaction.user,
-			reason,
-			color: 0x77dd77,
-		});
-
-		const notes: string[] = [];
-		if (mcRestored) notes.push(`Minecraft whitelist restored for \`${mcRestored}\`.`);
-		if (mcError) notes.push('Could not reach the Minecraft server.');
-		if (notes.length) embed.setFooter({ text: notes.join(' ') });
-
-		await Promise.all([
-			interaction.editReply({ embeds: [embed] }),
-			sendModLog(interaction.guild!, embed),
-			sendPublicModLog(interaction.guild!, embed),
-		]);
+		await interaction.editReply({ embeds: [result.embed!] });
 	},
 };
 

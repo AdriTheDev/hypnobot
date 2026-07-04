@@ -1,8 +1,8 @@
 import { AutocompleteInteraction, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM, getLinkedAccounts } from '../../lib/modUtils';
+import { resolveReason } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
-import { applyMcModAction } from '../../lib/mcRcon';
+import { checkModerationPermissions, applyPunishment } from '../../lib/moderationActions';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -32,82 +32,36 @@ const command: Command = {
 		const rawReason = interaction.options.getString('reason', true);
 		const member = await interaction.guild!.members.fetch(targetUser.id).catch(() => null);
 
-		if (!member) {
-			await interaction.editReply('That user is not in this server.');
-			return;
-		}
-
-		if (!member.kickable) {
-			await interaction.editReply('I do not have permission to kick that member.');
-			return;
-		}
-
-		const interactionMember = interaction.member as GuildMember;
-		if (member.roles.highest.position >= interactionMember.roles.highest.position) {
-			await interaction.editReply('You cannot kick someone with an equal or higher role.');
+		const moderatorMember = interaction.member as GuildMember;
+		const permCheck = checkModerationPermissions({
+			action: 'kick',
+			guild: interaction.guild!,
+			moderatorMember,
+			target: member,
+			targetUser,
+		});
+		if (!permCheck.ok) {
+			await interaction.editReply(permCheck.message);
 			return;
 		}
 
 		const reason = await resolveReason(interaction.guildId!, 'kick', rawReason);
 
-		const dmSent = await sendPunishmentDM(targetUser, {
+		const result = await applyPunishment({
 			action: 'kick',
-			guildName: interaction.guild!.name,
+			guild: interaction.guild!,
+			targetUser,
+			targetMember: member,
+			moderator: { user: interaction.user, member: moderatorMember },
 			reason,
 		});
 
-		await member.kick(reason);
-
-		let mcKicked: string | null = null;
-		let mcReachable = true;
-		try {
-			mcKicked = await applyMcModAction(interaction.guildId!, targetUser.id, 'kick', reason);
-		} catch {
-			mcReachable = false;
+		if (!result.ok) {
+			await interaction.editReply(result.failureMessage ?? 'Could not kick that member.');
+			return;
 		}
 
-		const embed = buildModEmbed({
-			action: 'Member Kicked',
-			target: targetUser,
-			moderator: interaction.user,
-			reason,
-			color: 0xff6961,
-		});
-
-		const altIds = await getLinkedAccounts(interaction.guildId!, targetUser.id);
-		let altCount = 0;
-
-		for (const altId of altIds) {
-			try {
-				const altMember = await interaction.guild!.members.fetch(altId).catch(() => null);
-				if (!altMember || !altMember.kickable) continue;
-
-				await altMember.kick(`[Alt of ${targetUser.username}] ${reason}`);
-				await applyMcModAction(interaction.guildId!, altId, 'kick', `[Alt of ${targetUser.username}] ${reason}`).catch(() => null);
-				altCount++;
-
-				const altEmbed = buildModEmbed({
-					action: 'Member Kicked (Alt)',
-					target: altMember.user,
-					moderator: interaction.user,
-					reason: `[Alt of ${targetUser.username}] ${reason}`,
-					color: 0xff6961,
-				});
-				await Promise.all([sendModLog(interaction.guild!, altEmbed), sendPublicModLog(interaction.guild!, altEmbed)]);
-			} catch {
-				// skip alts that can't be kicked
-			}
-		}
-
-		const notes: string[] = [];
-		if (!dmSent) notes.push('Could not send DM to the user.');
-		if (altCount > 0) notes.push(`Also applied to ${altCount} linked alt(s).`);
-		if (mcKicked) notes.push(`Also kicked from Minecraft as \`${mcKicked}\`.`);
-		if (!mcReachable) notes.push('Could not reach the Minecraft server.');
-		if (notes.length) embed.setFooter({ text: notes.join(' ') });
-
-		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
-		await interaction.editReply({ embeds: [embed] });
+		await interaction.editReply({ embeds: [result.embed!] });
 	},
 };
 

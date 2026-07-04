@@ -1,9 +1,8 @@
 import { AutocompleteInteraction, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM, getLinkedAccounts } from '../../lib/modUtils';
+import { resolveReason } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
-import { scheduleTempBan } from '../../lib/tempBanScheduler';
-import { applyMcModAction } from '../../lib/mcRcon';
+import { checkModerationPermissions, applyPunishment } from '../../lib/moderationActions';
 import ms, { StringValue } from 'ms';
 
 const command: Command = {
@@ -37,125 +36,47 @@ const command: Command = {
 
 		const member = await interaction.guild!.members.fetch(targetUser.id).catch(() => null);
 
-		if (member) {
-			if (!member.bannable) {
-				await interaction.editReply('I do not have permission to ban that member.');
-				return;
-			}
-			const interactionMember = interaction.member as GuildMember;
-			if (member.roles.highest.position >= interactionMember.roles.highest.position) {
-				await interaction.editReply('You cannot ban someone with an equal or higher role.');
-				return;
-			}
+		const moderatorMember = interaction.member as GuildMember;
+		const permCheck = checkModerationPermissions({
+			action: 'ban',
+			guild: interaction.guild!,
+			moderatorMember,
+			target: member,
+			targetUser,
+		});
+		if (!permCheck.ok) {
+			await interaction.editReply(permCheck.message);
+			return;
 		}
 
 		const reason = await resolveReason(interaction.guildId!, 'ban', rawReason);
 
-		let durationMs: number | null = null;
-		let durationLabel: string | undefined;
+		let durationMs: number | undefined;
 		if (durationStr) {
-			durationMs = ms(durationStr as StringValue);
-			if (!durationMs) {
+			const parsed = ms(durationStr as StringValue);
+			if (!parsed) {
 				await interaction.editReply('Invalid duration format. Examples: `7d`, `24h`, `30m`.');
 				return;
 			}
-			durationLabel = ms(durationMs, { long: true });
+			durationMs = parsed;
 		}
 
-		const dmSent = await sendPunishmentDM(targetUser, {
+		const result = await applyPunishment({
 			action: 'ban',
-			guildName: interaction.guild!.name,
+			guild: interaction.guild!,
+			targetUser,
+			targetMember: member,
+			moderator: { user: interaction.user, member: moderatorMember },
 			reason,
-			duration: durationLabel ?? 'Permanent',
+			durationMs,
 		});
 
-		await interaction.guild!.bans.create(targetUser.id, {
-			reason,
-			deleteMessageSeconds: 7 * 86400,
-		});
-
-		if (durationMs) {
-			const expiresAt = new Date(Date.now() + durationMs);
-			const ban = await prisma.tempBan.upsert({
-				where: { userId_guildId: { userId: targetUser.id, guildId: interaction.guildId! } },
-				create: { userId: targetUser.id, guildId: interaction.guildId!, reason, moderatorId: interaction.user.id, expiresAt },
-				update: { reason, moderatorId: interaction.user.id, expiresAt },
-			});
-			scheduleTempBan(interaction.client, ban);
+		if (!result.ok) {
+			await interaction.editReply(result.failureMessage ?? 'Could not ban that user.');
+			return;
 		}
 
-		let mcBanned: string | null = null;
-		let mcReachable = true;
-		try {
-			mcBanned = await applyMcModAction(interaction.guildId!, targetUser.id, 'ban', reason);
-		} catch {
-			mcReachable = false;
-		}
-
-		const embed = buildModEmbed({
-			action: 'Member Banned',
-			target: targetUser,
-			moderator: interaction.user,
-			reason,
-			duration: durationLabel ?? 'Permanent',
-			color: 0xff6961,
-		});
-
-		const altIds = await getLinkedAccounts(interaction.guildId!, targetUser.id);
-		let altCount = 0;
-
-		for (const altId of altIds) {
-			try {
-				await interaction.guild!.bans.create(altId, {
-					reason: `[Alt of ${targetUser.username}] ${reason}`,
-					deleteMessageSeconds: 7 * 86400,
-				});
-				altCount++;
-
-				if (durationMs) {
-					const altExpiresAt = new Date(Date.now() + durationMs);
-					const altBan = await prisma.tempBan.upsert({
-						where: { userId_guildId: { userId: altId, guildId: interaction.guildId! } },
-						create: {
-							userId: altId,
-							guildId: interaction.guildId!,
-							reason,
-							moderatorId: interaction.user.id,
-							expiresAt: altExpiresAt,
-						},
-						update: { reason, moderatorId: interaction.user.id, expiresAt: altExpiresAt },
-					});
-					scheduleTempBan(interaction.client, altBan);
-				}
-
-				await applyMcModAction(interaction.guildId!, altId, 'ban', `[Alt of ${targetUser.username}] ${reason}`).catch(() => null);
-
-				const altUser = await interaction.client.users.fetch(altId).catch(() => null);
-				if (altUser) {
-					const altEmbed = buildModEmbed({
-						action: 'Member Banned (Alt)',
-						target: altUser,
-						moderator: interaction.user,
-						reason: `[Alt of ${targetUser.username}] ${reason}`,
-						duration: durationLabel ?? 'Permanent',
-						color: 0xff6961,
-					});
-					await Promise.all([sendModLog(interaction.guild!, altEmbed), sendPublicModLog(interaction.guild!, altEmbed)]);
-				}
-			} catch {
-				// alt may already be banned or otherwise unbannable
-			}
-		}
-
-		const notes: string[] = [];
-		if (!dmSent) notes.push('Could not send DM to the user.');
-		if (altCount > 0) notes.push(`Also applied to ${altCount} linked alt(s).`);
-		if (mcBanned) notes.push(`Also banned from Minecraft as \`${mcBanned}\`.`);
-		if (!mcReachable) notes.push('Could not reach the Minecraft server.');
-		if (notes.length) embed.setFooter({ text: notes.join(' ') });
-
-		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
-		await interaction.editReply({ embeds: [embed] });
+		await interaction.editReply({ embeds: [result.embed!] });
 	},
 };
 

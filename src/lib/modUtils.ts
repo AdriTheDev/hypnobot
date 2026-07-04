@@ -1,8 +1,8 @@
-import { EmbedBuilder, Guild, User, TextChannel, GuildAuditLogsEntry, AuditLogEvent } from 'discord.js';
+import { Colors, EmbedBuilder, Guild, User, TextChannel, GuildAuditLogsEntry, AuditLogEvent } from 'discord.js';
 import type { ColorResolvable } from 'discord.js';
 import { prisma } from './prisma';
 
-type PunishmentAction = 'kick' | 'ban' | 'mute' | 'warn' | 'unmute';
+type PunishmentAction = 'kick' | 'ban' | 'mute' | 'warn' | 'unmute' | 'suspend' | 'unsuspend';
 
 const ACTION_VERB: Record<PunishmentAction, string> = {
 	kick: 'kicked from',
@@ -10,6 +10,8 @@ const ACTION_VERB: Record<PunishmentAction, string> = {
 	mute: 'muted in',
 	warn: 'warned in',
 	unmute: 'unmuted in',
+	suspend: 'suspended in',
+	unsuspend: 'unsuspended in',
 };
 
 const ACTION_EMOJI: Record<PunishmentAction, string> = {
@@ -18,14 +20,18 @@ const ACTION_EMOJI: Record<PunishmentAction, string> = {
 	mute: '🔇',
 	warn: '⚠️',
 	unmute: '🔊',
+	suspend: '⛔',
+	unsuspend: '✅',
 };
 
 const ACTION_COLOR: Record<PunishmentAction, number> = {
 	kick: 0xff6961,
 	ban: 0xff6961,
-	mute: 0xff6961,
+	mute: Colors.Orange,
 	warn: 0xffc067,
 	unmute: 0x77dd77,
+	suspend: 0xff6961,
+	unsuspend: 0x77dd77,
 };
 
 export async function fetchAuditEntry<T extends AuditLogEvent>(

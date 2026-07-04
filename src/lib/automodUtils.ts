@@ -1,6 +1,6 @@
 import { GuildMember } from 'discord.js';
 import { prisma } from './prisma';
-import { buildModEmbed, sendModLog, sendPublicModLog } from './modUtils';
+import { applyPunishment, DEFAULT_SUSPENSION_DURATION_MS } from './moderationActions';
 
 export const AUTOMOD_THRESHOLD = 5;
 export const DEFAULT_AVATAR_POINTS = 1;
@@ -38,37 +38,24 @@ export async function runAutomodCheck(member: GuildMember): Promise<void> {
 	});
 	if (existing) return;
 
-	let suspendedRole = member.guild.roles.cache.find((r) => r.name === 'Suspended');
-	if (!suspendedRole) {
-		suspendedRole = await member.guild.roles.create({
-			name: 'Suspended',
-			color: 0x808080,
-			reason: 'Auto-created for suspension system',
-		});
-	}
-
-	const roleIds = member.roles.cache.filter((r) => r.id !== member.guild.id).map((r) => r.id);
 	const reason = `Automod: risk score ${points}/${AUTOMOD_THRESHOLD}`;
 
-	await prisma.suspendedUser.create({
-		data: {
-			userId: member.id,
-			guildId: member.guild.id,
-			roleIds,
-			moderatorId: member.client.user!.id,
+	try {
+		const result = await applyPunishment({
+			action: 'suspend',
+			guild: member.guild,
+			targetUser: member.user,
+			targetMember: member,
+			moderator: { user: member.client.user!, member: null },
 			reason,
-		},
-	});
+			durationMs: DEFAULT_SUSPENSION_DURATION_MS,
+			titlePrefix: '[AUTO] ',
+		});
 
-	await member.roles.set([suspendedRole], reason).catch(() => null);
-
-	const embed = buildModEmbed({
-		action: '[AUTO] Member Suspended',
-		target: member.user,
-		moderator: member.client.user!,
-		reason,
-		color: 0xff6961,
-	});
-
-	await Promise.all([sendModLog(member.guild, embed), sendPublicModLog(member.guild, embed)]);
+		if (!result.ok) {
+			console.error(`[automod] Failed to suspend ${member.id} in ${member.guild.id}: ${result.failureMessage}`);
+		}
+	} catch (err) {
+		console.error(`[automod] Unexpected error suspending ${member.id} in ${member.guild.id}:`, err);
+	}
 }

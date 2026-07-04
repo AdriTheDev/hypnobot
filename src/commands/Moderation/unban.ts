@@ -1,8 +1,7 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, Colors, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { buildModEmbed, resolveReason, sendModLog, sendPublicModLog } from '../../lib/modUtils';
-import { prisma } from '../../lib/prisma';
-import { applyMcModAction } from '../../lib/mcRcon';
+import { resolveReason } from '../../lib/modUtils';
+import { checkModerationPermissions, reversePunishment } from '../../lib/moderationActions';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -24,37 +23,37 @@ const command: Command = {
 			return;
 		}
 
-		const reason = await resolveReason(interaction.guildId!, 'unban', rawReason);
-
-		await interaction.guild!.bans.remove(userId, reason);
-		await prisma.tempBan.deleteMany({
-			where: { userId, guildId: interaction.guildId! },
+		const moderatorMember = interaction.member as GuildMember;
+		const permCheck = checkModerationPermissions({
+			action: 'unban',
+			guild: interaction.guild!,
+			moderatorMember,
+			target: null,
+			targetUser: ban.user,
 		});
-
-		let mcPardoned: string | null = null;
-		let mcError = false;
-		try {
-			mcPardoned = await applyMcModAction(interaction.guildId!, userId, 'unban', reason);
-		} catch {
-			mcError = true;
+		if (!permCheck.ok) {
+			await interaction.editReply(permCheck.message);
+			return;
 		}
 
-		const embed = buildModEmbed({
-			action: 'Member Unbanned',
-			target: ban.user,
-			moderator: interaction.user,
+		const reason = await resolveReason(interaction.guildId!, 'unban', rawReason);
+
+		const result = await reversePunishment({
+			action: 'unban',
+			guild: interaction.guild!,
+			targetUser: ban.user,
+			targetMember: null,
+			moderator: { user: interaction.user, member: moderatorMember },
 			reason,
-			color: 0x77dd77,
+			sendDm: false,
 		});
 
-		const notes: string[] = [];
-		if (mcPardoned) notes.push(`Minecraft ban also lifted and whitelist restored for \`${mcPardoned}\`.`);
-		if (mcError) notes.push('Could not reach the Minecraft server.');
-		if (notes.length) embed.setFooter({ text: notes.join(' ') });
+		if (!result.ok) {
+			await interaction.editReply(result.failureMessage ?? 'Could not unban that user.');
+			return;
+		}
 
-		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
-
-		await interaction.editReply({ embeds: [embed] });
+		await interaction.editReply({ embeds: [result.embed!] });
 	},
 };
 

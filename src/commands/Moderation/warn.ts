@@ -7,11 +7,9 @@ import {
 	GuildMember,
 } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM, getLinkedAccounts } from '../../lib/modUtils';
+import { resolveReason } from '../../lib/modUtils';
 import { prisma } from '../../lib/prisma';
-import { applyMcModAction } from '../../lib/mcRcon';
-
-const WARN_BAN_THRESHOLD = 4;
+import { checkModerationPermissions, applyPunishment } from '../../lib/moderationActions';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -70,122 +68,36 @@ const command: Command = {
 				return;
 			}
 
-			const interactionMember = interaction.member as GuildMember;
-			if (member.roles.highest.position >= interactionMember.roles.highest.position) {
-				await interaction.editReply('You cannot warn someone with an equal or higher role.');
+			const moderatorMember = interaction.member as GuildMember;
+			const permCheck = checkModerationPermissions({
+				action: 'warn',
+				guild: interaction.guild!,
+				moderatorMember,
+				target: member,
+				targetUser,
+			});
+			if (!permCheck.ok) {
+				await interaction.editReply(permCheck.message);
 				return;
 			}
 
 			const reason = await resolveReason(guildId, 'warn', rawReason);
 
-			const warning = await prisma.warning.create({
-				data: { userId: targetUser.id, guildId, reason, moderatorId: interaction.user.id },
-			});
-
-			const warningCount = await prisma.warning.count({ where: { userId: targetUser.id, guildId, deletedAt: null } });
-
-			const dmSent = await sendPunishmentDM(targetUser, {
+			const result = await applyPunishment({
 				action: 'warn',
-				guildName: interaction.guild!.name,
+				guild: interaction.guild!,
+				targetUser,
+				targetMember: member,
+				moderator: { user: interaction.user, member: moderatorMember },
 				reason,
-				warningId: warning.id,
-				warningsRemaining: Math.max(0, WARN_BAN_THRESHOLD - warningCount),
 			});
 
-			const embed = buildModEmbed({
-				action: 'Member Warned',
-				target: targetUser,
-				moderator: interaction.user,
-				reason,
-				color: 0xffc067,
-			});
-
-			embed.addFields(
-				{ name: 'Warning ID', value: `\`${warning.id}\``, inline: true },
-				{ name: 'Total Warnings', value: `${warningCount}`, inline: true },
-			);
-
-			if (warningCount >= WARN_BAN_THRESHOLD) {
-				const banReason =
-					'This is an automated ban as you have received 4 or more warnings against your account. If you believe this is a mistake or you wish to appeal it, visit https://appeal.gg/2BtqX2ZhCg';
-				await sendPunishmentDM(targetUser, {
-					action: 'ban',
-					guildName: interaction.guild!.name,
-					reason: banReason,
-					duration: 'Permanent',
-				});
-				await interaction.guild!.bans.create(targetUser.id, { reason: banReason }).catch(() => null);
-				await applyMcModAction(guildId, targetUser.id, 'ban', banReason).catch(() => null);
-				const banEmbed = buildModEmbed({
-					action: 'Member Banned (Auto)',
-					target: targetUser,
-					moderator: interaction.guild!.client.user!,
-					reason: banReason,
-					duration: 'Permanent',
-					color: 0xff6961,
-				});
-				await Promise.all([sendModLog(interaction.guild!, banEmbed), sendPublicModLog(interaction.guild!, banEmbed)]);
+			if (!result.ok) {
+				await interaction.editReply(result.failureMessage ?? 'Could not warn that member.');
+				return;
 			}
 
-			const altIds = await getLinkedAccounts(guildId, targetUser.id);
-			let altCount = 0;
-
-			for (const altId of altIds) {
-				try {
-					const altUser = await interaction.client.users.fetch(altId).catch(() => null);
-					if (!altUser) continue;
-
-					const altWarning = await prisma.warning.create({
-						data: {
-							userId: altId,
-							guildId,
-							reason: `[Alt of ${targetUser.username}] ${reason}`,
-							moderatorId: interaction.user.id,
-						},
-					});
-					const altWarnCount = await prisma.warning.count({ where: { userId: altId, guildId, deletedAt: null } });
-					altCount++;
-
-					const altWarnEmbed = buildModEmbed({
-						action: 'Member Warned (Alt)',
-						target: altUser,
-						moderator: interaction.user,
-						reason: `[Alt of ${targetUser.username}] ${reason}`,
-						color: 0xffc067,
-					});
-					altWarnEmbed.addFields(
-						{ name: 'Warning ID', value: `\`${altWarning.id}\``, inline: true },
-						{ name: 'Total Warnings', value: `${altWarnCount}`, inline: true },
-					);
-					await Promise.all([sendModLog(interaction.guild!, altWarnEmbed), sendPublicModLog(interaction.guild!, altWarnEmbed)]);
-
-					if (altWarnCount >= WARN_BAN_THRESHOLD) {
-						const banReason =
-							'This is an automated ban as you have received 4 or more warnings against your account. If you believe this is a mistake or you wish to appeal it, visit https://appeal.gg/2BtqX2ZhCg';
-						await interaction.guild!.bans.create(altId, { reason: banReason }).catch(() => null);
-						await applyMcModAction(guildId, altId, 'ban', banReason).catch(() => null);
-						const altBanEmbed = buildModEmbed({
-							action: 'Member Banned (Auto, Alt)',
-							target: altUser,
-							moderator: interaction.guild!.client.user!,
-							reason: banReason,
-							duration: 'Permanent',
-							color: 0xff6961,
-						});
-						await Promise.all([sendModLog(interaction.guild!, altBanEmbed), sendPublicModLog(interaction.guild!, altBanEmbed)]);
-					}
-				} catch {
-					// skip alts that can't be warned
-				}
-			}
-
-			const notes: string[] = [];
-			if (!dmSent) notes.push('Could not send DM to the user.');
-			if (altCount > 0) notes.push(`Also applied to ${altCount} linked alt(s).`);
-			if (notes.length) embed.setFooter({ text: notes.join(' ') });
-
-			await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
-			await interaction.editReply({ embeds: [embed] });
+			await interaction.editReply({ embeds: [result.embed!] });
 			return;
 		}
 

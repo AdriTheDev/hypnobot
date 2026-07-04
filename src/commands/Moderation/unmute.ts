@@ -1,6 +1,7 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { resolveReason, buildModEmbed, sendModLog, sendPublicModLog, sendPunishmentDM } from '../../lib/modUtils';
+import { resolveReason } from '../../lib/modUtils';
+import { checkModerationPermissions, reversePunishment } from '../../lib/moderationActions';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -27,28 +28,36 @@ const command: Command = {
 			return;
 		}
 
+		const moderatorMember = interaction.member as GuildMember;
+		const permCheck = checkModerationPermissions({
+			action: 'unmute',
+			guild: interaction.guild!,
+			moderatorMember,
+			target: member,
+			targetUser,
+		});
+		if (!permCheck.ok) {
+			await interaction.editReply(permCheck.message);
+			return;
+		}
+
 		const reason = await resolveReason(interaction.guildId!, 'unmute', rawReason);
 
-		await member.timeout(null, reason);
-
-		const dmSent = await sendPunishmentDM(targetUser, {
+		const result = await reversePunishment({
 			action: 'unmute',
-			guildName: interaction.guild!.name,
+			guild: interaction.guild!,
+			targetUser,
+			targetMember: member,
+			moderator: { user: interaction.user, member: moderatorMember },
 			reason,
 		});
 
-		const embed = buildModEmbed({
-			action: 'Member Unmuted',
-			target: targetUser,
-			moderator: interaction.user,
-			reason,
-			color: 0x77dd77,
-		});
+		if (!result.ok) {
+			await interaction.editReply(result.failureMessage ?? 'Could not unmute that member.');
+			return;
+		}
 
-		if (!dmSent) embed.setFooter({ text: 'Could not send DM to the user.' });
-
-		await Promise.all([sendModLog(interaction.guild!, embed), sendPublicModLog(interaction.guild!, embed)]);
-		await interaction.editReply({ embeds: [embed] });
+		await interaction.editReply({ embeds: [result.embed!] });
 	},
 };
 

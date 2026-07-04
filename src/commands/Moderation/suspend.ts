@@ -1,12 +1,8 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { buildModEmbed, sendModLog, sendPublicModLog, getLinkedAccounts } from '../../lib/modUtils';
-import { applyMcModAction } from '../../lib/mcRcon';
-import { scheduleSuspension } from '../../lib/suspendScheduler';
+import { checkModerationPermissions, applyPunishment, DEFAULT_SUSPENSION_DURATION_MS } from '../../lib/moderationActions';
 import ms, { StringValue } from 'ms';
-
-const DEFAULT_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -29,24 +25,16 @@ const command: Command = {
 			return;
 		}
 
-		if (target.id === interaction.user.id) {
-			await interaction.editReply('You cannot suspend yourself.');
-			return;
-		}
-
-		if (target.id === interaction.guild!.ownerId) {
-			await interaction.editReply('You cannot suspend the server owner.');
-			return;
-		}
-
-		const moderator = interaction.member as GuildMember;
-		if (target.roles.highest.position >= moderator.roles.highest.position) {
-			await interaction.editReply('You cannot suspend a member with an equal or higher role.');
-			return;
-		}
-
-		if (!target.manageable) {
-			await interaction.editReply("I do not have permission to manage that member's roles.");
+		const moderatorMember = interaction.member as GuildMember;
+		const permCheck = checkModerationPermissions({
+			action: 'suspend',
+			guild: interaction.guild!,
+			moderatorMember,
+			target,
+			targetUser: target.user,
+		});
+		if (!permCheck.ok) {
+			await interaction.editReply(permCheck.message);
 			return;
 		}
 
@@ -58,7 +46,7 @@ const command: Command = {
 			return;
 		}
 
-		let durationMs = DEFAULT_DURATION_MS;
+		let durationMs = DEFAULT_SUSPENSION_DURATION_MS;
 		if (durationStr) {
 			const parsed = ms(durationStr as StringValue);
 			if (!parsed) {
@@ -68,106 +56,22 @@ const command: Command = {
 			durationMs = parsed;
 		}
 
-		const durationLabel = ms(durationMs, { long: true });
-		const expiresAt = new Date(Date.now() + durationMs);
-
-		let suspendedRole = interaction.guild!.roles.cache.find((r) => r.name === 'Suspended');
-		if (!suspendedRole) {
-			suspendedRole = await interaction.guild!.roles.create({
-				name: 'Suspended',
-				color: 0x808080,
-				reason: 'Auto-created for suspension system',
-			});
-		}
-
-		const roleIds = target.roles.cache.filter((r) => r.id !== interaction.guildId!).map((r) => r.id);
-
-		const record = await prisma.suspendedUser.create({
-			data: {
-				userId: target.id,
-				guildId: interaction.guildId!,
-				roleIds,
-				moderatorId: interaction.user.id,
-				reason,
-				expiresAt,
-			},
-		});
-
-		await target.roles.set([suspendedRole], reason);
-		scheduleSuspension(interaction.client, { ...record, expiresAt });
-
-		let mcSuspended: string | null = null;
-		let mcReachable = true;
-		try {
-			mcSuspended = await applyMcModAction(interaction.guildId!, target.id, 'suspend', reason);
-		} catch {
-			mcReachable = false;
-		}
-
-		const embed = buildModEmbed({
-			action: 'Member Suspended',
-			target: target.user,
-			moderator: interaction.user,
+		const result = await applyPunishment({
+			action: 'suspend',
+			guild: interaction.guild!,
+			targetUser: target.user,
+			targetMember: target,
+			moderator: { user: interaction.user, member: moderatorMember },
 			reason,
-			duration: durationLabel,
-			color: 0xff6961,
+			durationMs,
 		});
 
-		const altIds = await getLinkedAccounts(interaction.guildId!, target.id);
-		let altCount = 0;
-
-		for (const altId of altIds) {
-			try {
-				const altMember = await interaction.guild!.members.fetch(altId).catch(() => null);
-				if (!altMember || !altMember.manageable) continue;
-
-				const altExisting = await prisma.suspendedUser.findUnique({
-					where: { userId_guildId: { userId: altId, guildId: interaction.guildId! } },
-				});
-				if (altExisting) continue;
-
-				const altRoleIds = altMember.roles.cache.filter((r) => r.id !== interaction.guildId!).map((r) => r.id);
-				const altRecord = await prisma.suspendedUser.create({
-					data: {
-						userId: altId,
-						guildId: interaction.guildId!,
-						roleIds: altRoleIds,
-						moderatorId: interaction.user.id,
-						reason: `[Alt of ${target.user.username}] ${reason}`,
-						expiresAt,
-					},
-				});
-
-				await altMember.roles.set([suspendedRole!], reason);
-				scheduleSuspension(interaction.client, { ...altRecord, expiresAt });
-				await applyMcModAction(interaction.guildId!, altId, 'suspend', `[Alt of ${target.user.username}] ${reason}`).catch(() => null);
-				altCount++;
-
-				const altEmbed = buildModEmbed({
-					action: 'Member Suspended (Alt)',
-					target: altMember.user,
-					moderator: interaction.user,
-					reason: `[Alt of ${target.user.username}] ${reason}`,
-					duration: durationLabel,
-					color: 0xff6961,
-				});
-				await Promise.all([sendModLog(interaction.guild!, altEmbed), sendPublicModLog(interaction.guild!, altEmbed)]);
-			} catch {
-				// skip alts that can't be suspended
-			}
+		if (!result.ok) {
+			await interaction.editReply(result.failureMessage ?? 'Could not suspend that member.');
+			return;
 		}
 
-		const notes: string[] = [];
-		if (altCount > 0) notes.push(`Also applied to ${altCount} linked alt(s).`);
-		if (mcSuspended) notes.push(`Also kicked and removed from Minecraft whitelist as \`${mcSuspended}\`.`);
-		if (!mcReachable) notes.push('Could not reach the Minecraft server.');
-		if (notes.length) embed.setFooter({ text: notes.join(' ') });
-
-		await Promise.all([
-			interaction.editReply({ embeds: [embed] }),
-			sendModLog(interaction.guild!, embed),
-			sendPublicModLog(interaction.guild!, embed),
-		]);
+		await interaction.editReply({ embeds: [result.embed!] });
 	},
 };
 
