@@ -50,8 +50,14 @@ async function expireSuspension(client: Client, record: SuspendedUserRecord): Pr
 		.catch(() => null);
 }
 
+const MAX_TIMEOUT_DELAY = 2147483647;
+
 export function scheduleSuspension(client: Client, record: SuspendedUserRecord): void {
 	const delay = Math.max(0, record.expiresAt.getTime() - Date.now());
+	if (delay > MAX_TIMEOUT_DELAY) {
+		setTimeout(() => scheduleSuspension(client, record), MAX_TIMEOUT_DELAY);
+		return;
+	}
 	setTimeout(() => expireSuspension(client, record), delay);
 }
 

@@ -32,8 +32,14 @@ async function expireBan(client: Client, ban: TempBanRecord): Promise<void> {
 	await prisma.tempBan.delete({ where: { id: ban.id } }).catch(() => null);
 }
 
+const MAX_TIMEOUT_DELAY = 2147483647;
+
 export function scheduleTempBan(client: Client, ban: TempBanRecord): void {
 	const delay = Math.max(0, ban.expiresAt.getTime() - Date.now());
+	if (delay > MAX_TIMEOUT_DELAY) {
+		setTimeout(() => scheduleTempBan(client, ban), MAX_TIMEOUT_DELAY);
+		return;
+	}
 	setTimeout(() => expireBan(client, ban), delay);
 }
 
