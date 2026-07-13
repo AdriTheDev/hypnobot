@@ -11,6 +11,10 @@ on:
                 description: Force deploy slash commands
                 type: boolean
                 default: false
+            deploy_database:
+                description: Force deploy database schema
+                type: boolean
+                default: false
 
 env:
     REGISTRY: ghcr.io
@@ -56,15 +60,15 @@ jobs:
                     || echo "changed=false" >> "$GITHUB_OUTPUT"
 
             - name: Install dependencies
-              if: steps.schema.outputs.changed == 'true' || steps.commands.outputs.changed == 'true' || inputs.deploy_commands == true
+              if: steps.schema.outputs.changed == 'true' || steps.commands.outputs.changed == 'true' || inputs.deploy_commands == true || inputs.deploy_database == true
               run: npm ci
 
             - name: Generate Prisma client
-              if: steps.schema.outputs.changed == 'true' || steps.commands.outputs.changed == 'true' || inputs.deploy_commands == true
+              if: steps.schema.outputs.changed == 'true' || steps.commands.outputs.changed == 'true' || inputs.deploy_commands == true || inputs.deploy_database == true
               run: npx prisma generate
 
             - name: Sync database schema
-              if: steps.schema.outputs.changed == 'true'
+              if: steps.schema.outputs.changed == 'true' || inputs.deploy_database == true
               run: |
                   export $(grep -v '^#' /opt/hypnobot/.env | grep '^DATABASE_URL=' | xargs)
                   npx prisma db push
