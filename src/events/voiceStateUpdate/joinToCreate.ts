@@ -25,6 +25,32 @@ const event: EventFile = {
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: guild.id } });
 		if (!config?.joinToCreateChannel) return;
 
+		// User left a tracked VC (checked first so it still runs even when the
+		// user is moving straight into the trigger channel to spin up a new one)
+		if (oldState.channelId) {
+			const vc = await prisma.joinToCreateVC.findUnique({ where: { channelId: oldState.channelId } });
+			if (vc) {
+				const channel = guild.channels.cache.get(oldState.channelId);
+				const voiceChannel = channel?.type === ChannelType.GuildVoice ? channel : null;
+
+				if (!voiceChannel || voiceChannel.members.size === 0) {
+					await prisma.joinToCreateVC.delete({ where: { channelId: oldState.channelId } });
+					if (voiceChannel) {
+						botDeletedChannels.add(voiceChannel.id);
+						await voiceChannel.delete().catch(() => botDeletedChannels.delete(voiceChannel.id));
+					}
+				} else {
+					const newMemberIds = vc.memberIds.filter((id) => id !== member.id);
+					const newManagerId = vc.managerId === member.id && newMemberIds.length > 0 ? newMemberIds[0] : vc.managerId;
+
+					await prisma.joinToCreateVC.update({
+						where: { channelId: oldState.channelId },
+						data: { memberIds: newMemberIds, managerId: newManagerId },
+					});
+				}
+			}
+		}
+
 		// User joined the trigger channel — create a new VC and move them in
 		if (newState.channelId === config.joinToCreateChannel) {
 			const triggerChannel = guild.channels.cache.get(config.joinToCreateChannel);
@@ -58,31 +84,6 @@ const event: EventFile = {
 			await commandsMessage?.pin().catch(() => null);
 
 			return;
-		}
-
-		// User left a tracked VC
-		if (oldState.channelId) {
-			const vc = await prisma.joinToCreateVC.findUnique({ where: { channelId: oldState.channelId } });
-			if (vc) {
-				const channel = guild.channels.cache.get(oldState.channelId);
-				const voiceChannel = channel?.type === ChannelType.GuildVoice ? channel : null;
-
-				if (!voiceChannel || voiceChannel.members.size === 0) {
-					await prisma.joinToCreateVC.delete({ where: { channelId: oldState.channelId } });
-					if (voiceChannel) {
-						botDeletedChannels.add(voiceChannel.id);
-						await voiceChannel.delete().catch(() => botDeletedChannels.delete(voiceChannel.id));
-					}
-				} else {
-					const newMemberIds = vc.memberIds.filter((id) => id !== member.id);
-					const newManagerId = vc.managerId === member.id && newMemberIds.length > 0 ? newMemberIds[0] : vc.managerId;
-
-					await prisma.joinToCreateVC.update({
-						where: { channelId: oldState.channelId },
-						data: { memberIds: newMemberIds, managerId: newManagerId },
-					});
-				}
-			}
 		}
 
 		// User joined a tracked VC (not the trigger)

@@ -5,7 +5,8 @@ import { runAutomodCheck } from '../../lib/automodUtils';
 const event: EventFile = {
 	async execute(oldMember: GuildMember | PartialGuildMember, newMember: GuildMember) {
 		const added = newMember.roles.cache.filter((r) => !oldMember.roles.cache.has(r.id));
-		if (!added.size) return;
+		const nicknameChanged = oldMember.nickname !== newMember.nickname;
+		if (!added.size && !nicknameChanged) return;
 
 		await runAutomodCheck(newMember);
 	},

@@ -5,6 +5,8 @@ import { sendLog } from '../../lib/logWebhook';
 
 const event: EventFile = {
 	async execute(messages: Collection<Snowflake, Message | PartialMessage>, channel: GuildTextBasedChannel) {
+		if ('name' in channel && channel.name?.includes('verif-')) return;
+
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: channel.guild.id } });
 		if (!config?.messageLogChannel) return;
 

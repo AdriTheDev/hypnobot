@@ -78,8 +78,8 @@ const event: EventFile = {
 				});
 			}
 			await prisma.welcomeMessage
-				.delete({
-					where: { userId_guildId: { userId: member.id, guildId: member.guild.id } },
+				.deleteMany({
+					where: { userId: member.id, guildId: member.guild.id, messageId: welcome.messageId },
 				})
 				.catch(() => null);
 		}

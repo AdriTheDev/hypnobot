@@ -12,7 +12,12 @@ const event: EventFile = {
 
 		const roleIds = full.roles.cache.filter((r) => r.id !== member.guild.id && !r.managed).map((r) => r.id);
 
-		if (roleIds.length === 0) return;
+		if (roleIds.length === 0) {
+			await prisma.roleSnapshot
+				.delete({ where: { userId_guildId: { userId: member.id, guildId: member.guild.id } } })
+				.catch(() => null);
+			return;
+		}
 
 		await prisma.roleSnapshot.upsert({
 			where: { userId_guildId: { userId: member.id, guildId: member.guild.id } },

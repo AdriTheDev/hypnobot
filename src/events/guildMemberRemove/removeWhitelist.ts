@@ -12,9 +12,11 @@ const event: EventFile = {
 
 		await rconCommand(`whitelist remove ${entry.minecraftUsername}`).catch(() => null);
 
-		await prisma.minecraftWhitelist.delete({
-			where: { userId_guildId: { userId: member.id, guildId: member.guild.id } },
-		});
+		await prisma.minecraftWhitelist
+			.delete({
+				where: { userId_guildId: { userId: member.id, guildId: member.guild.id } },
+			})
+			.catch(() => null);
 	},
 };
 

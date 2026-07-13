@@ -187,3 +187,15 @@ model AiReport {
   @@unique([guildId, messageId])
   @@index([guildId, status])
 }
+
+model MeowCount {
+  id      String @id @default(cuid())
+  guildId String
+  userId  String
+  word    String
+  count   Int    @default(0)
+
+  @@unique([guildId, userId, word])
+  @@index([guildId, word])
+  @@index([guildId, userId])
+}

@@ -20,7 +20,7 @@ export async function calculateRiskPoints(member: GuildMember): Promise<number> 
 	if (member.user.avatar === null) total += DEFAULT_AVATAR_POINTS;
 	if (Date.now() - member.user.createdTimestamp < NEW_ACCOUNT_DAYS * 86_400_000) total += NEW_ACCOUNT_POINTS;
 	if (SUSPICIOUS_USERNAME_RE.test(member.user.username)) total += SUSPICIOUS_USERNAME_POINTS;
-	if (member.user.globalName && NON_ASCII_RE.test(member.user.globalName)) total += NON_ASCII_DISPLAY_NAME_POINTS;
+	if (NON_ASCII_RE.test(member.displayName)) total += NON_ASCII_DISPLAY_NAME_POINTS;
 
 	for (const factor of roleFactors) {
 		if (member.roles.cache.has(factor.value)) total += factor.points;

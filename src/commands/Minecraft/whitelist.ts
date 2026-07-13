@@ -148,7 +148,16 @@ const command: Command = {
 			if (entries.length === 0) {
 				embed.setDescription('No accounts are whitelisted yet.');
 			} else {
-				embed.setDescription(entries.map((e) => `<@${e.userId}> — \`${e.minecraftUsername}\``).join('\n'));
+				const lines = entries.map((e) => `<@${e.userId}> — \`${e.minecraftUsername}\``);
+				let description = '';
+				let shown = 0;
+				for (const line of lines) {
+					if (description.length + line.length + 1 > 3900) break;
+					description += (description ? '\n' : '') + line;
+					shown++;
+				}
+				if (shown < entries.length) description += `\n*...and ${entries.length - shown} more*`;
+				embed.setDescription(description);
 			}
 
 			await interaction.editReply({ embeds: [embed] });

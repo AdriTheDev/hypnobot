@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js';
 import type { Command, ExtendedClient } from '../../lib/types';
 
 const command: Command = {
@@ -21,9 +21,7 @@ const command: Command = {
 			if (cmd.ownerOnly && !isOwner) continue;
 
 			const requiredPerms = cmd.data.toJSON().default_member_permissions;
-			if (requiredPerms === null) {
-				if (!memberPerms?.has(PermissionFlagsBits.Administrator)) continue;
-			} else if (requiredPerms !== undefined) {
+			if (requiredPerms !== null && requiredPerms !== undefined) {
 				if (!memberPerms?.has(BigInt(requiredPerms))) continue;
 			}
 

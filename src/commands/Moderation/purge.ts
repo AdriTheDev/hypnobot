@@ -10,6 +10,7 @@ import {
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { sendLog } from '../../lib/logWebhook';
+import { botDeletedMessages } from '../../lib/botDeletedMessages';
 
 async function deleteMessages(channel: TextChannel, amount: number, filterUser: User | null): Promise<number> {
 	let totalDeleted = 0;
@@ -34,7 +35,8 @@ async function deleteMessages(channel: TextChannel, amount: number, filterUser: 
 		}
 
 		if (batch.length === 1) {
-			await batch[0].delete().catch(() => null);
+			botDeletedMessages.add(batch[0].id);
+			await batch[0].delete().catch(() => botDeletedMessages.delete(batch[0].id));
 			totalDeleted++;
 		} else {
 			const deleted = await channel.bulkDelete(batch, true);

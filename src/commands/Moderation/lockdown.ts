@@ -14,23 +14,19 @@ async function setAllChannels(
 		if (exemptIds.includes(channel.id) || (channel.parentId !== null && exemptIds.includes(channel.parentId))) {
 			continue;
 		}
-		if (allow) {
-			await channel.lockPermissions().catch(() => null);
-		} else {
-			await channel.permissionOverwrites
-				.edit(
-					guild!.roles.everyone,
-					{
-						SendMessages: false,
-						AddReactions: false,
-						CreatePrivateThreads: false,
-						CreatePublicThreads: false,
-						SendMessagesInThreads: false,
-					},
-					{ reason },
-				)
-				.catch(() => null);
-		}
+		await channel.permissionOverwrites
+			.edit(
+				guild!.roles.everyone,
+				{
+					SendMessages: allow ? null : false,
+					AddReactions: allow ? null : false,
+					CreatePrivateThreads: allow ? null : false,
+					CreatePublicThreads: allow ? null : false,
+					SendMessagesInThreads: allow ? null : false,
+				},
+				{ reason },
+			)
+			.catch(() => null);
 		affected++;
 	}
 	return affected;

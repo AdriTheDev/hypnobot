@@ -12,6 +12,9 @@ export interface TempBanRecord {
 }
 
 async function expireBan(client: Client, ban: TempBanRecord): Promise<void> {
+	const existing = await prisma.tempBan.findUnique({ where: { id: ban.id } }).catch(() => null);
+	if (!existing) return;
+
 	try {
 		const guild = await client.guilds.fetch(ban.guildId);
 		await guild.bans.remove(ban.userId, 'Temporary ban expired.');

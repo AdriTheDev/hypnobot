@@ -10,6 +10,9 @@ const event: EventFile = {
 		if (!message.guild || message.author?.bot || message.webhookId) return;
 		if (botDeletedMessages.delete(message.id)) return;
 
+		const channel = message.guild.channels.cache.get(message.channelId);
+		if (channel && 'name' in channel && channel.name?.includes('verif-')) return;
+
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: message.guild.id } });
 		if (!config?.messageLogChannel) return;
 
