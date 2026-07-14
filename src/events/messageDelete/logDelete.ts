@@ -1,9 +1,9 @@
 import { Message, PartialMessage, EmbedBuilder, AuditLogEvent } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { sendLog } from '../../lib/logWebhook';
+import { sendLog } from '../../lib/botStatus';
 import { fetchAuditEntry } from '../../lib/modUtils';
-import { botDeletedMessages } from '../../lib/botDeletedMessages';
+import { botDeletedMessages } from '../../lib/botDeletedTracking';
 
 const event: EventFile = {
 	async execute(message: Message | PartialMessage) {

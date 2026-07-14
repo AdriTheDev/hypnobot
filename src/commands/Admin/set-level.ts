@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { totalXPForLevel } from '../../lib/levelingUtils';
+import { totalXPForLevel } from '../../lib/leveling';
 
 const command: Command = {
 	data: new SlashCommandBuilder()

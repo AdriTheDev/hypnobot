@@ -2,7 +2,6 @@ import { type Interaction, PermissionFlagsBits, TextChannel, GuildMember } from 
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { buildReportEmbed, buildReportButtons, MOD_VOTE_THRESHOLD } from '../../lib/aiReportUtils';
-import { botDeletedMessages } from '../../lib/botDeletedMessages';
 
 const event: EventFile = {
 	async execute(interaction: Interaction) {
@@ -57,10 +56,7 @@ const event: EventFile = {
 				const targetChannel = interaction.guild!.channels.cache.get(report.channelId);
 				if (targetChannel?.isTextBased()) {
 					const targetMessage = await (targetChannel as TextChannel).messages.fetch(report.messageId).catch(() => null);
-					if (targetMessage) botDeletedMessages.add(targetMessage.id);
-					await targetMessage?.delete().catch(() => {
-						if (targetMessage) botDeletedMessages.delete(targetMessage.id);
-					});
+					await targetMessage?.delete().catch(() => null);
 				}
 			} catch {
 				// message may already be deleted

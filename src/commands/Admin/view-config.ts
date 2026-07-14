@@ -62,6 +62,10 @@ const command: Command = {
 					value: `**Join Roles:** ${config?.joinRoles.length ? config.joinRoles.map(ro).join(', ') : none('None')}`,
 				},
 				{
+					name: '🛡️ JoinGuard',
+					value: `**JoinGuard Roles:** ${config?.joinGuardRoles.length ? config.joinGuardRoles.map(ro).join(', ') : none('None')}`,
+				},
+				{
 					name: '🔁 Role Restore',
 					value: `**Restore Roles on Rejoin:** ${config?.restoreRoles ? '✅ Enabled' : '❌ Disabled'}`,
 				},

@@ -1,7 +1,8 @@
 import { ChannelType, EmbedBuilder, OverwriteType, PermissionFlagsBits, VoiceState } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { botDeletedChannels } from '../../lib/botDeletedChannels';
+import { botDeletedChannels } from '../../lib/botDeletedTracking';
+import { sendLog } from '../../lib/botStatus';
 
 const VC_MANAGER_COMMANDS = [
 	{ name: '/vc name', description: 'Rename your voice channel.' },
@@ -38,6 +39,18 @@ const event: EventFile = {
 					if (voiceChannel) {
 						botDeletedChannels.add(voiceChannel.id);
 						await voiceChannel.delete().catch(() => botDeletedChannels.delete(voiceChannel.id));
+					}
+
+					if (config.voiceLogChannel) {
+						const embed = new EmbedBuilder()
+							.setTitle('Join to Create VC Deleted')
+							.setColor(0xff6961)
+							.addFields(
+								{ name: 'Channel', value: voiceChannel?.name ?? `\`${oldState.channelId}\``, inline: true },
+								{ name: 'Owner', value: `<@${vc.ownerId}>`, inline: true },
+							)
+							.setTimestamp();
+						await sendLog(guild, config.voiceLogChannel, embed);
 					}
 				} else {
 					const newMemberIds = vc.memberIds.filter((id) => id !== member.id);
@@ -82,6 +95,18 @@ const event: EventFile = {
 
 			const commandsMessage = await newVC.send({ content: `${member} is the VC manager.`, embeds: [embed] }).catch(() => null);
 			await commandsMessage?.pin().catch(() => null);
+
+			if (config.voiceLogChannel) {
+				const logEmbed = new EmbedBuilder()
+					.setTitle('Join to Create VC Created')
+					.setColor(0x77dd77)
+					.addFields(
+						{ name: 'Channel', value: `${newVC}`, inline: true },
+						{ name: 'Owner', value: `${member} (\`${member.id}\`)`, inline: true },
+					)
+					.setTimestamp();
+				await sendLog(guild, config.voiceLogChannel, logEmbed);
+			}
 
 			return;
 		}

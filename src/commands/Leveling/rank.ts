@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, AttachmentBuilder, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { resolveLevel } from '../../lib/levelingUtils';
+import { resolveLevel } from '../../lib/leveling';
 import { generateRankCard } from '../../lib/rankCard';
 
 const DEFAULT_COLOR = '#FD86F3';

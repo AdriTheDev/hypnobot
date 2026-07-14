@@ -1,9 +1,9 @@
 import { GuildChannel, DMChannel, EmbedBuilder, ChannelType, AuditLogEvent } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { sendLog } from '../../lib/logWebhook';
+import { sendLog } from '../../lib/botStatus';
 import { fetchAuditExecutor } from '../../lib/modUtils';
-import { botDeletedChannels } from '../../lib/botDeletedChannels';
+import { botDeletedChannels } from '../../lib/botDeletedTracking';
 
 const CHANNEL_TYPE_NAMES: Partial<Record<ChannelType, string>> = {
 	[ChannelType.GuildText]: 'Text',

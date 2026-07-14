@@ -1,5 +1,5 @@
 import type { ExtendedClient, EventFile } from '../../lib/types';
-import { logStatus } from '../../lib/statusWebhook';
+import { logStatus } from '../../lib/botStatus';
 
 const event: EventFile = {
 	once: true,

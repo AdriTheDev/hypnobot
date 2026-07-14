@@ -2,7 +2,7 @@ import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import type { ExtendedClient, Command, ContextMenuCommand } from './lib/types';
 import { loadCommands } from './handlers/commandHandler';
 import { loadEvents } from './handlers/eventHandler';
-import { logStatus } from './lib/statusWebhook';
+import { logStatus } from './lib/botStatus';
 import dotenv from 'dotenv';
 
 dotenv.config({ quiet: true });

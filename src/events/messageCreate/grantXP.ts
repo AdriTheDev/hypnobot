@@ -1,8 +1,7 @@
 import type { Message } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { resolveLevel, randomXP } from '../../lib/levelingUtils';
-import { scheduleLeaderboardUpdate } from '../../lib/leaderboard';
+import { resolveLevel, randomXP, scheduleLeaderboardUpdate } from '../../lib/leveling';
 
 const xpCooldowns = new Map<string, number>();
 const XP_COOLDOWN_MS = 60_000;

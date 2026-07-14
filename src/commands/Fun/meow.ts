@@ -7,7 +7,7 @@ import {
 	ComponentType,
 } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { buildMeowWordsEmbed, buildMeowUsersEmbed, buildMeowUserEmbed } from '../../lib/meowLeaderboard';
+import { buildMeowWordsEmbed, buildMeowUsersEmbed, buildMeowUserEmbed } from '../../lib/meow';
 
 type BoardPage = 'words' | 'users';
 

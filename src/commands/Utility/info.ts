@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, Colors, ChatInputCommandInteraction, ChannelType, version as djsVersion } from 'discord.js';
 import { prisma } from '../../lib/prisma';
-import { resolveLevel } from '../../lib/levelingUtils';
+import { resolveLevel } from '../../lib/leveling';
 import { calculateRiskPoints, AUTOMOD_THRESHOLD } from '../../lib/automodUtils';
 import type { Command, ExtendedClient } from '../../lib/types';
 import { version } from '../../../package.json';

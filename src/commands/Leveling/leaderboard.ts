@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { buildLeaderboardEmbed } from '../../lib/leaderboard';
+import { buildLeaderboardEmbed } from '../../lib/leveling';
 
 const command: Command = {
 	data: new SlashCommandBuilder().setName('leaderboard').setDescription('Show the top 10 members by XP in this server.'),

@@ -1,7 +1,7 @@
 import { GuildMember, PartialGuildMember, EmbedBuilder, time, TimestampStyles } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { sendLog } from '../../lib/logWebhook';
+import { sendLog } from '../../lib/botStatus';
 
 const event: EventFile = {
 	async execute(member: GuildMember | PartialGuildMember) {

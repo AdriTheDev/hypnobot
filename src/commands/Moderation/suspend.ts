@@ -10,7 +10,9 @@ const command: Command = {
 		.setDescription('Suspend a member, removing all their roles and assigning the Suspended role.')
 		.addUserOption((opt) => opt.setName('user').setDescription('Member to suspend.').setRequired(true))
 		.addStringOption((opt) => opt.setName('reason').setDescription('Reason for the suspension.').setRequired(false))
-		.addStringOption((opt) => opt.setName('duration').setDescription('Duration (e.g. 7d, 24h). Defaults to 7d.').setRequired(false))
+		.addStringOption((opt) =>
+			opt.setName('duration').setDescription('Duration (e.g. 7d, 24h, permanent). Defaults to 7d.').setRequired(false),
+		)
 		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 
 	async execute(interaction: ChatInputCommandInteraction) {
@@ -46,14 +48,18 @@ const command: Command = {
 			return;
 		}
 
-		let durationMs = DEFAULT_SUSPENSION_DURATION_MS;
+		let durationMs: number | undefined = DEFAULT_SUSPENSION_DURATION_MS;
 		if (durationStr) {
-			const parsed = ms(durationStr as StringValue);
-			if (!parsed) {
-				await interaction.editReply('Invalid duration format. Examples: `7d`, `24h`, `30m`.');
-				return;
+			if (/^perm(anent)?$/i.test(durationStr.trim())) {
+				durationMs = undefined;
+			} else {
+				const parsed = ms(durationStr as StringValue);
+				if (!parsed) {
+					await interaction.editReply('Invalid duration format. Examples: `7d`, `24h`, `30m`, `permanent`.');
+					return;
+				}
+				durationMs = parsed;
 			}
-			durationMs = parsed;
 		}
 
 		const result = await applyPunishment({

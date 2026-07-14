@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, ChannelType } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { updateLeaderboard } from '../../lib/leaderboard';
+import { updateLeaderboard } from '../../lib/leveling';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -268,6 +268,23 @@ const command: Command = {
 					sub
 						.setName('remove')
 						.setDescription('Remove a join role.')
+						.addRoleOption((opt) => opt.setName('role').setDescription('Role').setRequired(true)),
+				),
+		)
+		.addSubcommandGroup((group) =>
+			group
+				.setName('join-guard-role')
+				.setDescription('Manage roles automatically assigned to new or suspicious joiners by JoinGuard.')
+				.addSubcommand((sub) =>
+					sub
+						.setName('add')
+						.setDescription('Add a JoinGuard role.')
+						.addRoleOption((opt) => opt.setName('role').setDescription('Role').setRequired(true)),
+				)
+				.addSubcommand((sub) =>
+					sub
+						.setName('remove')
+						.setDescription('Remove a JoinGuard role.')
 						.addRoleOption((opt) => opt.setName('role').setDescription('Role').setRequired(true)),
 				),
 		)
@@ -546,6 +563,36 @@ const command: Command = {
 					data: { joinRoles: current.joinRoles.filter((id) => id !== role.id) },
 				});
 				await interaction.editReply(`${role} removed from join roles.`);
+			}
+			return;
+		}
+
+		if (group === 'join-guard-role') {
+			const role = interaction.options.getRole('role', true);
+
+			if (sub === 'add') {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (current?.joinGuardRoles.includes(role.id)) {
+					await interaction.editReply(`${role} is already a JoinGuard role.`);
+					return;
+				}
+				await prisma.guildConfig.upsert({
+					where: { guildId },
+					create: { guildId, noXpRoles: [], noXpChannels: [], joinGuardRoles: [role.id] },
+					update: { joinGuardRoles: { push: role.id } },
+				});
+				await interaction.editReply(`${role} added to JoinGuard roles.`);
+			} else {
+				const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+				if (!current?.joinGuardRoles.includes(role.id)) {
+					await interaction.editReply(`${role} is not a JoinGuard role.`);
+					return;
+				}
+				await prisma.guildConfig.update({
+					where: { guildId },
+					data: { joinGuardRoles: current.joinGuardRoles.filter((id) => id !== role.id) },
+				});
+				await interaction.editReply(`${role} removed from JoinGuard roles.`);
 			}
 			return;
 		}

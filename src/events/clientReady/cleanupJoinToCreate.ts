@@ -1,7 +1,7 @@
 import { GuildChannel } from 'discord.js';
 import type { EventFile, ExtendedClient } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { botDeletedChannels } from '../../lib/botDeletedChannels';
+import { botDeletedChannels } from '../../lib/botDeletedTracking';
 
 const event: EventFile = {
 	once: true,

@@ -1,6 +1,6 @@
 import { Client } from 'discord.js';
 import type { EventFile } from '../../lib/types';
-import { setGuildInvites } from '../../lib/inviteCache';
+import { setGuildInvites } from '../../lib/memberActions';
 
 const event: EventFile = {
 	once: true,

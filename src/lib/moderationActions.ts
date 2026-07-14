@@ -3,8 +3,6 @@ import ms from 'ms';
 import { prisma } from './prisma';
 import { buildModEmbed, getLinkedAccounts, sendModLog, sendPublicModLog, sendPunishmentDM } from './modUtils';
 import { applyMcModAction } from './mcRcon';
-import { scheduleSuspension } from './suspendScheduler';
-import { scheduleTempBan } from './tempBanScheduler';
 
 export type PunishmentKind = 'warn' | 'kick' | 'ban' | 'mute' | 'suspend';
 export type ReversalKind = 'unmute' | 'unsuspend' | 'unban';
@@ -164,7 +162,7 @@ const MC_NOTE: Record<McAction, (name: string) => string> = {
 
 function durationLabel(action: ModerationActionKind, durationMs?: number): string | undefined {
 	if (durationMs) return ms(durationMs, { long: true });
-	return action === 'ban' ? 'Permanent' : undefined;
+	return action === 'ban' || action === 'suspend' ? 'Permanent' : undefined;
 }
 
 function checkBotCapability(action: ModerationActionKind, member: GuildMember): PermissionCheckResult {
@@ -248,12 +246,11 @@ async function executeBan(ctx: ActionContext & { deleteMessageSeconds?: number }
 
 	if (ctx.durationMs) {
 		const expiresAt = new Date(Date.now() + ctx.durationMs);
-		const ban = await prisma.tempBan.upsert({
+		await prisma.tempBan.upsert({
 			where: { userId_guildId: { userId: ctx.targetUser.id, guildId: ctx.guild.id } },
 			create: { userId: ctx.targetUser.id, guildId: ctx.guild.id, reason: ctx.reason, moderatorId: ctx.moderatorId, expiresAt },
 			update: { reason: ctx.reason, moderatorId: ctx.moderatorId, expiresAt },
 		});
-		scheduleTempBan(ctx.guild.client, ban);
 	}
 
 	return { success: true, mcAction: 'ban' };
@@ -277,9 +274,9 @@ async function performSuspend(ctx: ActionContext): Promise<ActionOutcome> {
 	}
 
 	const roleIds = ctx.targetMember!.roles.cache.filter((r) => r.id !== ctx.guild.id).map((r) => r.id);
-	const expiresAt = new Date(Date.now() + ctx.durationMs!);
+	const expiresAt = ctx.durationMs ? new Date(Date.now() + ctx.durationMs) : null;
 
-	const record = await prisma.suspendedUser.create({
+	await prisma.suspendedUser.create({
 		data: {
 			userId: ctx.targetUser.id,
 			guildId: ctx.guild.id,
@@ -291,7 +288,6 @@ async function performSuspend(ctx: ActionContext): Promise<ActionOutcome> {
 	});
 
 	await ctx.targetMember!.roles.set([ctx.suspendedRole!], ctx.reason);
-	scheduleSuspension(ctx.guild.client, { ...record, expiresAt });
 
 	return { success: true, mcAction: 'suspend' };
 }

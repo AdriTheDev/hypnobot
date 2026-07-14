@@ -88,6 +88,7 @@ model GuildConfig {
   lockdownExemptChannels  String[] @default([])
   aiReportChannel         String?
   joinToCreateChannel     String?
+  joinGuardRoles          String[] @default([])
 }
 
 model UserNote {

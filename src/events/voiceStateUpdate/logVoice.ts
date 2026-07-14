@@ -1,7 +1,7 @@
 import { VoiceState, EmbedBuilder } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { sendLog } from '../../lib/logWebhook';
+import { sendLog } from '../../lib/botStatus';
 
 const event: EventFile = {
 	async execute(oldState: VoiceState, newState: VoiceState) {

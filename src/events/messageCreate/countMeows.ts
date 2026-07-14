@@ -1,7 +1,7 @@
 import type { Message } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { countMeowWords } from '../../lib/meowUtils';
+import { countMeowWords } from '../../lib/meow';
 
 const event: EventFile = {
 	async execute(message: Message) {

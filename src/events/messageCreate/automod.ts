@@ -1,13 +1,11 @@
-import { Message, PermissionFlagsBits } from 'discord.js';
+import { Message, GuildMember, PermissionFlagsBits } from 'discord.js';
 import type { EventFile } from '../../lib/types';
-import { botDeletedMessages } from '../../lib/botDeletedMessages';
-import { buildModEmbed, sendModLog, sendPublicModLog } from '../../lib/modUtils';
+import { botDeletedMessages } from '../../lib/botDeletedTracking';
+import { applyPunishment } from '../../lib/moderationActions';
 
 const WINDOW_MS = 5000;
 const FLOOD_THRESHOLD = 7;
-const FLOOD_TIMEOUT_MS = 5 * 60 * 1000;
 const CROSSCHAN_THRESHOLD = 3;
-const PERMANENT_TIMEOUT_MS = 28 * 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 60_000;
 
 type SpamEntry = { messages: Message[]; resetAt: number };
@@ -21,12 +19,28 @@ setInterval(() => {
 	}
 }, CLEANUP_INTERVAL_MS);
 
+async function suspendForSpam(member: GuildMember, reason: string): Promise<void> {
+	const result = await applyPunishment({
+		action: 'suspend',
+		guild: member.guild,
+		targetUser: member.user,
+		targetMember: member,
+		moderator: { user: member.client.user!, member: null },
+		reason,
+		titlePrefix: '[AUTO] ',
+	});
+
+	if (!result.ok) {
+		console.error(`[automod] Failed to suspend ${member.id} in ${member.guild.id}: ${result.failureMessage}`);
+	}
+}
+
 const event: EventFile = {
 	async execute(message: Message) {
 		if (!message.inGuild() || message.author.bot) return;
 
 		const member = message.member;
-		if (!member?.moderatable) return;
+		if (!member?.manageable) return;
 		if (member.permissions.has(PermissionFlagsBits.ManageMessages)) return;
 
 		const key = `${message.guild.id}:${message.author.id}`;
@@ -44,33 +58,14 @@ const event: EventFile = {
 		if (channels.size >= CROSSCHAN_THRESHOLD) {
 			const toDelete = entry.messages;
 			tracker.delete(key);
-			// for (const msg of toDelete) botDeletedMessages.add(msg.id);
 			await Promise.all(toDelete.map((m) => m.delete().catch(() => botDeletedMessages.delete(m.id))));
-			await member.timeout(PERMANENT_TIMEOUT_MS, 'HypnoBot Automod: Cross-channel spam');
-			const embed = buildModEmbed({
-				action: 'Member Muted (Automod)',
-				target: message.author,
-				moderator: message.guild.client.user!,
-				reason: 'Spamming (likely bot)',
-				duration: 'Permanent',
-				color: 0xff6961,
-			});
-			await Promise.all([sendModLog(message.guild!, embed), sendPublicModLog(message.guild!, embed)]);
+			await suspendForSpam(member, 'Automod: Cross-channel spam (likely bot)');
 			return;
 		}
 
 		if (entry.messages.length >= FLOOD_THRESHOLD) {
 			tracker.delete(key);
-			await member.timeout(FLOOD_TIMEOUT_MS, 'HypnoBot Automod: Spamming');
-			const embed = buildModEmbed({
-				action: 'Member Muted (Automod)',
-				target: message.author,
-				moderator: message.guild.client.user!,
-				reason: 'Spamming',
-				duration: '5 minutes',
-				color: 0xff6961,
-			});
-			await Promise.all([sendModLog(message.guild!, embed), sendPublicModLog(message.guild!, embed)]);
+			await suspendForSpam(member, 'Automod: Spamming');
 		}
 	},
 };

@@ -1,7 +1,7 @@
 import { GuildMember, PartialGuildMember, ChannelType, TextChannel, ForumChannel, MessageType } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { botDeletedMessages } from '../../lib/botDeletedMessages';
+import { botDeletedMessages } from '../../lib/botDeletedTracking';
 
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 

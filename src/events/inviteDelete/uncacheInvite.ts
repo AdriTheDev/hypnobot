@@ -1,6 +1,6 @@
 import { Invite } from 'discord.js';
 import type { EventFile } from '../../lib/types';
-import { deleteInvite } from '../../lib/inviteCache';
+import { deleteInvite } from '../../lib/memberActions';
 
 const event: EventFile = {
 	execute(invite: Invite) {

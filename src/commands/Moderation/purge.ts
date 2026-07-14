@@ -9,8 +9,8 @@ import {
 } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { sendLog } from '../../lib/logWebhook';
-import { botDeletedMessages } from '../../lib/botDeletedMessages';
+import { sendLog } from '../../lib/botStatus';
+import { botDeletedMessages } from '../../lib/botDeletedTracking';
 
 async function deleteMessages(channel: TextChannel, amount: number, filterUser: User | null): Promise<number> {
 	let totalDeleted = 0;

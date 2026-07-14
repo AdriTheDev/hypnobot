@@ -1,4 +1,4 @@
-import { GuildMember, EmbedBuilder } from 'discord.js';
+import { GuildMember, EmbedBuilder, Collection, Invite } from 'discord.js';
 import { prisma } from './prisma';
 
 const DEFAULT_WELCOME_MESSAGE = `Hey {@user}, welcome to the server! We're glad to have you here.\nYou are member \`{membercount}\`.\nMake sure to read the <#1451972624107311124> and introduce yourself in <#1454976402339135589>!`;
@@ -53,4 +53,24 @@ export async function assignJoinRoles(member: GuildMember): Promise<void> {
 	for (const roleId of roles) {
 		await member.roles.add(roleId).catch(() => null);
 	}
+}
+
+const inviteCache = new Map<string, Collection<string, number>>();
+
+export function setGuildInvites(guildId: string, invites: Collection<string, Invite>): void {
+	inviteCache.set(guildId, new Collection(invites.map((inv) => [inv.code, inv.uses ?? 0])));
+}
+
+export function getGuildInvites(guildId: string): Collection<string, number> | undefined {
+	return inviteCache.get(guildId);
+}
+
+export function setInvite(guildId: string, code: string, uses: number): void {
+	const guild = inviteCache.get(guildId) ?? new Collection<string, number>();
+	guild.set(code, uses);
+	inviteCache.set(guildId, guild);
+}
+
+export function deleteInvite(guildId: string, code: string): void {
+	inviteCache.get(guildId)?.delete(code);
 }

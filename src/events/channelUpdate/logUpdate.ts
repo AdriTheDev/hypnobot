@@ -1,7 +1,7 @@
 import { GuildChannel, DMChannel, EmbedBuilder, ChannelType, TextChannel, VoiceChannel, AuditLogEvent } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { sendLog } from '../../lib/logWebhook';
+import { sendLog } from '../../lib/botStatus';
 import { fetchAuditExecutor } from '../../lib/modUtils';
 
 const event: EventFile = {

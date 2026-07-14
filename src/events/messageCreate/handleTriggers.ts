@@ -1,7 +1,7 @@
 import type { Message } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { botDeletedMessages } from '../../lib/botDeletedMessages';
+import { botDeletedMessages } from '../../lib/botDeletedTracking';
 
 const cooldowns = new Map<string, number>();
 const COOLDOWN_MS = 10_000;

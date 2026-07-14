@@ -1,8 +1,8 @@
 import { GuildMember, EmbedBuilder, time, TimestampStyles } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { sendLog } from '../../lib/logWebhook';
-import { getGuildInvites, setGuildInvites } from '../../lib/inviteCache';
+import { sendLog } from '../../lib/botStatus';
+import { getGuildInvites, setGuildInvites } from '../../lib/memberActions';
 
 const event: EventFile = {
 	async execute(member: GuildMember) {

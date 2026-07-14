@@ -8,8 +8,13 @@ import {
 } from 'discord.js';
 import type { ContextMenuCommand } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { buildReportEmbed, buildReportButtons, AUTO_DELETE_THRESHOLD, MOD_VOTE_THRESHOLD } from '../../lib/aiReportUtils';
-import { scheduleAiReport } from '../../lib/aiReportScheduler';
+import {
+	buildReportEmbed,
+	buildReportButtons,
+	AUTO_DELETE_THRESHOLD,
+	MOD_VOTE_THRESHOLD,
+	scheduleAiReport,
+} from '../../lib/aiReportUtils';
 
 export default {
 	data: new ContextMenuCommandBuilder().setName('Report as AI Media').setType(ApplicationCommandType.Message),

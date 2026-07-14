@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import type { Command } from '../../lib/types';
-import { logStatus } from '../../lib/statusWebhook';
+import { logStatus } from '../../lib/botStatus';
 
 const command: Command = {
 	data: new SlashCommandBuilder().setName('restart').setDescription('Restart the bot.'),
