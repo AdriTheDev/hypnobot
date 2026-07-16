@@ -7,10 +7,7 @@ const event: EventFile = {
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: member.guild.id } });
 		if (!config?.restoreRoles) return;
 
-		const full = member.partial ? await member.fetch().catch(() => null) : member;
-		if (!full) return;
-
-		const roleIds = full.roles.cache.filter((r) => r.id !== member.guild.id && !r.managed).map((r) => r.id);
+		const roleIds = member.roles.cache.filter((r) => r.id !== member.guild.id && !r.managed).map((r) => r.id);
 
 		if (roleIds.length === 0) {
 			await prisma.roleSnapshot

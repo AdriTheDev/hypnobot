@@ -44,6 +44,8 @@ export async function sendWelcome(member: GuildMember): Promise<void> {
 }
 
 export async function assignJoinRoles(member: GuildMember): Promise<void> {
+	if (member.user.bot) return;
+
 	const config = await prisma.guildConfig.findUnique({ where: { guildId: member.guild.id } });
 	if (!config?.joinRoles.length) return;
 

@@ -1,7 +1,7 @@
 import { type Interaction, PermissionFlagsBits, TextChannel, GuildMember } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { buildReportEmbed, buildReportButtons, MOD_VOTE_THRESHOLD } from '../../lib/aiReportUtils';
+import { buildReportEmbed, buildReportButtons, MOD_VOTE_THRESHOLD, warnConfirmedAiAuthor } from '../../lib/aiReportUtils';
 
 const event: EventFile = {
 	async execute(interaction: Interaction) {
@@ -61,6 +61,8 @@ const event: EventFile = {
 			} catch {
 				// message may already be deleted
 			}
+
+			await warnConfirmedAiAuthor(interaction.client, report);
 		} else if (notAiVoters.length >= MOD_VOTE_THRESHOLD) {
 			status = 'dismissed';
 			resolvedAt = new Date();

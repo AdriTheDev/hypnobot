@@ -5,7 +5,7 @@ import { sendLog } from '../../lib/botStatus';
 
 const event: EventFile = {
 	async execute(oldMessage: Message | PartialMessage, newMessage: Message | PartialMessage) {
-		if (!newMessage.guild || newMessage.author?.bot || newMessage.webhookId) return;
+		if (!newMessage.guild || newMessage.author?.bot || newMessage.webhookId || !newMessage.author) return;
 		const before = oldMessage.content ?? null;
 		const after = newMessage.content ?? null;
 		if (!before || before === after || !after) return;
@@ -18,13 +18,9 @@ const event: EventFile = {
 			.setColor(0xffc067)
 			.setURL(newMessage.url)
 			.addFields(
-				{
-					name: 'Author',
-					value: newMessage.author ? `${newMessage.author} (\`${newMessage.author.id}\`)` : 'Unknown',
-					inline: true,
-				},
+				{ name: 'Author', value: `${newMessage.author} (\`${newMessage.author.id}\`)`, inline: true },
 				{ name: 'Channel', value: `<#${newMessage.channelId}>`, inline: true },
-				{ name: 'Before', value: before?.slice(0, 1024) ?? '*Not cached*' },
+				{ name: 'Before', value: before.slice(0, 1024) },
 				{ name: 'After', value: after.slice(0, 1024) },
 			)
 			.setFooter({ text: `Message ID: ${newMessage.id}` })

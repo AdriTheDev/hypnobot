@@ -14,6 +14,7 @@ import {
 	AUTO_DELETE_THRESHOLD,
 	MOD_VOTE_THRESHOLD,
 	scheduleAiReport,
+	warnConfirmedAiAuthor,
 } from '../../lib/aiReportUtils';
 
 export default {
@@ -96,6 +97,7 @@ export default {
 					data: { status: 'confirmed', resolvedAt: new Date(), resolvedById: reporterId },
 				});
 				finalStatus = 'confirmed';
+				await warnConfirmedAiAuthor(interaction.client, report);
 			} else if (!isMod && report.reporterIds.length >= AUTO_DELETE_THRESHOLD) {
 				try {
 					await message.delete();

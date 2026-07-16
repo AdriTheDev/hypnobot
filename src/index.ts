@@ -14,6 +14,7 @@ const client = new Client({
 		GatewayIntentBits.GuildIntegrations,
 		GatewayIntentBits.GuildInvites,
 		GatewayIntentBits.GuildMembers,
+		GatewayIntentBits.GuildMessageReactions,
 		GatewayIntentBits.GuildMessages,
 		GatewayIntentBits.GuildModeration,
 		GatewayIntentBits.GuildPresences,
@@ -22,7 +23,7 @@ const client = new Client({
 		GatewayIntentBits.Guilds,
 		GatewayIntentBits.MessageContent,
 	],
-	partials: [Partials.Message, Partials.Channel, Partials.GuildMember, Partials.User],
+	partials: [Partials.Message, Partials.Channel, Partials.GuildMember, Partials.User, Partials.Reaction],
 }) as ExtendedClient;
 
 client.commands = new Collection<string, Command>();

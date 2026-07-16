@@ -1,5 +1,6 @@
 import { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, Client, TextChannel } from 'discord.js';
 import { prisma } from './prisma';
+import { applyPunishment } from './moderationActions';
 
 export const AUTO_DELETE_THRESHOLD = 4;
 export const MOD_VOTE_THRESHOLD = 2;
@@ -56,7 +57,6 @@ export function buildReportEmbed(report: AiReportData): EmbedBuilder {
 			{ name: `AI Votes (${report.aiVoters.length}/${MOD_VOTE_THRESHOLD})`, value: aiVoters, inline: true },
 			{ name: `Not AI Votes (${report.notAiVoters.length}/${MOD_VOTE_THRESHOLD})`, value: notAiVoters, inline: true },
 		)
-		.setFooter({ text: `Report ID: ${report.id}` })
 		.setTimestamp(report.createdAt);
 
 	if (report.authorAvatarUrl) {
@@ -81,6 +81,33 @@ export function buildReportButtons(reportId: string, disabled: boolean): ActionR
 			.setStyle(ButtonStyle.Danger)
 			.setDisabled(disabled),
 	);
+}
+
+export async function warnConfirmedAiAuthor(
+	client: Client,
+	report: { guildId: string; authorId: string; messageUrl: string },
+): Promise<void> {
+	const guild = await client.guilds.fetch(report.guildId).catch(() => null);
+	if (!guild) return;
+
+	const author = await client.users.fetch(report.authorId).catch(() => null);
+	if (!author) return;
+
+	const member = await guild.members.fetch(report.authorId).catch(() => null);
+
+	const result = await applyPunishment({
+		action: 'warn',
+		guild,
+		targetUser: author,
+		targetMember: member,
+		moderator: { user: client.user!, member: null },
+		reason: `Posting AI-generated media is not allowed. Your message (${report.messageUrl}) was reviewed and confirmed as AI-generated content by the moderation team.`,
+		titlePrefix: '[AUTO] ',
+	});
+
+	if (!result.ok) {
+		console.error(`[aiReportUtils] Failed to warn ${report.authorId} in ${report.guildId} for confirmed AI content: ${result.failureMessage}`);
+	}
 }
 
 async function expireReport(client: Client, reportId: string): Promise<void> {

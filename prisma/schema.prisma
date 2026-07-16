@@ -89,6 +89,9 @@ model GuildConfig {
   aiReportChannel         String?
   joinToCreateChannel     String?
   joinGuardRoles          String[] @default([])
+  botBaitChannel          String?
+  botBaitMessageId        String?
+  botBaitBanCount         Int      @default(0)
 }
 
 model UserNote {

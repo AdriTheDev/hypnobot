@@ -9,6 +9,7 @@ const event: EventFile = {
 	async execute(message: Message | PartialMessage) {
 		if (!message.guild || message.author?.bot || message.webhookId) return;
 		if (botDeletedMessages.delete(message.id)) return;
+		if (!message.content || !message.author) return;
 
 		const channel = message.guild.channels.cache.get(message.channelId);
 		if (channel && 'name' in channel && channel.name?.includes('verif-')) return;
@@ -21,23 +22,17 @@ const event: EventFile = {
 		const pkRes = await fetch(`https://api.pluralkit.me/v2/messages/${message.id}`).catch(() => null);
 		if (pkRes?.ok) return;
 
-		const entry = message.author
-			? await fetchAuditEntry(message.guild, AuditLogEvent.MessageDelete, message.author.id, {
-					maxAgeMs: 10000,
-					extraMatch: (e) => e.extra.channel.id === message.channelId,
-				})
-			: null;
+		const entry = await fetchAuditEntry(message.guild, AuditLogEvent.MessageDelete, message.author.id, {
+			maxAgeMs: 10000,
+			extraMatch: (e) => e.extra.channel.id === message.channelId,
+		});
 		const deletedBy = entry?.executor ?? null;
 
 		const embed = new EmbedBuilder()
 			.setTitle('Message Deleted')
 			.setColor(0xff6961)
 			.addFields(
-				{
-					name: 'Author',
-					value: message.author ? `${message.author} (\`${message.author.id}\`)` : 'Unknown',
-					inline: true,
-				},
+				{ name: 'Author', value: `${message.author} (\`${message.author.id}\`)`, inline: true },
 				{ name: 'Channel', value: `<#${message.channelId}>`, inline: true },
 			)
 			.setFooter({ text: `Message ID: ${message.id}` })
@@ -47,9 +42,7 @@ const event: EventFile = {
 			embed.addFields({ name: 'Deleted By', value: `${deletedBy} (\`${deletedBy.id}\`)`, inline: true });
 		}
 
-		if (message.content) {
-			embed.addFields({ name: 'Content', value: message.content.slice(0, 1024) });
-		}
+		embed.addFields({ name: 'Content', value: message.content.slice(0, 1024) });
 
 		if (message.attachments.size) {
 			embed.addFields({

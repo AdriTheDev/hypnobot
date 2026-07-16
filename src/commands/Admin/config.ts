@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, ChannelType } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, ChannelType, EmbedBuilder, TextChannel } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { updateLeaderboard } from '../../lib/leveling';
+import { botBaitFooterText } from '../../lib/botBaitUtils';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
@@ -222,6 +223,18 @@ const command: Command = {
 			sub
 				.setName('ai-report-channel')
 				.setDescription('Set or clear the channel where AI media reports are posted for moderator review.')
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription('Channel (omit to clear).')
+						.addChannelTypes(ChannelType.GuildText)
+						.setRequired(false),
+				),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('bot-bait-channel')
+				.setDescription('Set or clear the bot bait trap channel. Posting or reacting there triggers an automatic ban.')
 				.addChannelOption((opt) =>
 					opt
 						.setName('channel')
@@ -676,6 +689,46 @@ const command: Command = {
 				update: { aiReportChannel: channel?.id ?? null },
 			});
 			await interaction.editReply(channel ? `AI report channel set to ${channel}.` : 'AI report channel cleared.');
+			return;
+		}
+
+		if (sub === 'bot-bait-channel') {
+			const channel = interaction.options.getChannel('channel');
+			const current = await prisma.guildConfig.findUnique({ where: { guildId } });
+
+			if (current?.botBaitChannel && current.botBaitMessageId) {
+				const oldChannel = interaction.guild!.channels.cache.get(current.botBaitChannel);
+				if (oldChannel?.isTextBased()) {
+					await (oldChannel as TextChannel).messages.delete(current.botBaitMessageId).catch(() => null);
+				}
+			}
+
+			if (!channel) {
+				await prisma.guildConfig.upsert({
+					where: { guildId },
+					create: { guildId, noXpRoles: [], noXpChannels: [], botBaitChannel: null, botBaitMessageId: null },
+					update: { botBaitChannel: null, botBaitMessageId: null },
+				});
+				await interaction.editReply('Bot bait channel cleared.');
+				return;
+			}
+
+			const embed = new EmbedBuilder()
+				.setTitle('DO NOT POST IN THIS CHANNEL!')
+				.setDescription(
+					'Do not post in this channel or react to this message. Doing so will result in an automatic, permanent ban.',
+				)
+				.setColor(0xff6961)
+				.setFooter({ text: botBaitFooterText(current?.botBaitBanCount ?? 0) });
+
+			const sentMessage = await (channel as TextChannel).send({ embeds: [embed] });
+
+			await prisma.guildConfig.upsert({
+				where: { guildId },
+				create: { guildId, noXpRoles: [], noXpChannels: [], botBaitChannel: channel.id, botBaitMessageId: sentMessage.id },
+				update: { botBaitChannel: channel.id, botBaitMessageId: sentMessage.id },
+			});
+			await interaction.editReply(`Bot bait channel set to ${channel}. Warning message posted.`);
 			return;
 		}
 
