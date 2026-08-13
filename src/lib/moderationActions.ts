@@ -135,6 +135,9 @@ const VC_DISCONNECT_ACTIONS = new Set<ModerationActionKind>(['mute', 'suspend'])
 
 const MEMBER_REQUIRED_ACTIONS = new Set<ModerationActionKind>(['kick', 'mute', 'suspend', 'unmute', 'unsuspend']);
 
+// Kicks/bans remove the shared guild, after which Discord rejects the DM — notify first.
+const DM_BEFORE_ACTIONS = new Set<ModerationActionKind>(['kick', 'ban']);
+
 const MC_ACTION_MAP: Partial<Record<ModerationActionKind, McAction>> = {
 	kick: 'kick',
 	ban: 'ban',
@@ -454,6 +457,17 @@ async function cascadeToLinkedAccounts(params: {
 
 		const altReason = `[Alt of ${params.primaryUsername}] ${params.reason}`;
 
+		const dmAction = DM_ACTION_MAP[params.action];
+		let altDmSent: boolean | undefined;
+		if (params.sendDm && dmAction && DM_BEFORE_ACTIONS.has(params.action)) {
+			altDmSent = await sendPunishmentDM(altUser, {
+				action: dmAction,
+				guildName: params.guild.name,
+				reason: altReason,
+				duration: durationLabel(params.action, params.durationMs),
+			});
+		}
+
 		const outcome = await params
 			.perform({
 				guild: params.guild,
@@ -500,9 +514,7 @@ async function cascadeToLinkedAccounts(params: {
 		});
 		if (outcome.extraFields) altEmbed.addFields(...outcome.extraFields);
 
-		const dmAction = DM_ACTION_MAP[params.action];
-		let altDmSent: boolean | undefined;
-		if (params.sendDm && dmAction) {
+		if (params.sendDm && dmAction && !DM_BEFORE_ACTIONS.has(params.action)) {
 			altDmSent = await sendPunishmentDM(altUser, {
 				action: dmAction,
 				guildName: params.guild.name,
@@ -550,6 +562,17 @@ export async function applyPunishment(params: ApplyPunishmentParams): Promise<Ap
 			(await guild.roles.create({ name: 'Suspended', color: 0x808080, reason: 'Auto-created for suspension system' }));
 	}
 
+	const dmAction = DM_ACTION_MAP[action];
+	let dmSent: boolean | undefined;
+	if (sendDm && dmAction && DM_BEFORE_ACTIONS.has(action)) {
+		dmSent = await sendPunishmentDM(targetUser, {
+			action: dmAction,
+			guildName: guild.name,
+			reason,
+			duration: durationLabel(action, durationMs),
+		});
+	}
+
 	const perform = PUNISHMENT_PERFORMERS[action];
 	const outcome = await perform({
 		guild,
@@ -581,9 +604,7 @@ export async function applyPunishment(params: ApplyPunishmentParams): Promise<Ap
 		}
 	}
 
-	let dmSent: boolean | undefined;
-	const dmAction = DM_ACTION_MAP[action];
-	if (sendDm && dmAction) {
+	if (sendDm && dmAction && !DM_BEFORE_ACTIONS.has(action)) {
 		dmSent = await sendPunishmentDM(targetUser, {
 			action: dmAction,
 			guildName: guild.name,
