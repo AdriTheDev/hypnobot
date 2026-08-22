@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import type { Command } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { checkModerationPermissions, applyPunishment, DEFAULT_SUSPENSION_DURATION_MS } from '../../lib/moderationActions';
+import { checkModerationPermissions, applyPunishment } from '../../lib/moderationActions';
 import ms, { StringValue } from 'ms';
 
 const command: Command = {
@@ -11,7 +11,7 @@ const command: Command = {
 		.addUserOption((opt) => opt.setName('user').setDescription('Member to suspend.').setRequired(true))
 		.addStringOption((opt) => opt.setName('reason').setDescription('Reason for the suspension.').setRequired(false))
 		.addStringOption((opt) =>
-			opt.setName('duration').setDescription('Duration (e.g. 7d, 24h, permanent). Defaults to 7d.').setRequired(false),
+			opt.setName('duration').setDescription('Duration (e.g. 7d, 24h). Defaults to permanent.').setRequired(false),
 		)
 		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 
@@ -48,18 +48,14 @@ const command: Command = {
 			return;
 		}
 
-		let durationMs: number | undefined = DEFAULT_SUSPENSION_DURATION_MS;
-		if (durationStr) {
-			if (/^perm(anent)?$/i.test(durationStr.trim())) {
-				durationMs = undefined;
-			} else {
-				const parsed = ms(durationStr as StringValue);
-				if (!parsed) {
-					await interaction.editReply('Invalid duration format. Examples: `7d`, `24h`, `30m`, `permanent`.');
-					return;
-				}
-				durationMs = parsed;
+		let durationMs: number | undefined;
+		if (durationStr && !/^perm(anent)?$/i.test(durationStr.trim())) {
+			const parsed = ms(durationStr as StringValue);
+			if (!parsed) {
+				await interaction.editReply('Invalid duration format. Examples: `7d`, `24h`, `30m`, `permanent`.');
+				return;
 			}
+			durationMs = parsed;
 		}
 
 		const result = await applyPunishment({

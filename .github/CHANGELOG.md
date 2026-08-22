@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.5.8] — 2026-08-22
+
+### Added
+- Cross-channel spam auto-suspensions now log the deleted messages (channel + content) to the mod log
+
+### Changed
+- Channel update logs no longer fire when the change was made by a bot
+- Join-to-create voice channels are no longer logged in server-logs; creation, deletion, and renames are logged only in voice-logs
+- `/suspend` now defaults to a permanent suspension; a duration is only applied when explicitly specified
+- `/membercount` is no longer ephemeral
+
+### Fixed
+- `/membercount` no longer attempts a human/bot breakdown — it relied on the partial member cache and silently undercounted on larger servers; it now just shows the accurate total from `guild.memberCount`
+
+---
+
 ## [1.5.7] — 2026-08-22
 
 ### Added

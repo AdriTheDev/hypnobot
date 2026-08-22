@@ -26,3 +26,4 @@ function createTTLSet() {
 
 export const botDeletedMessages = createTTLSet();
 export const botDeletedChannels = createTTLSet();
+export const botCreatedChannels = createTTLSet();

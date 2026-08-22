@@ -1,7 +1,7 @@
 import { ChannelType, EmbedBuilder, OverwriteType, PermissionFlagsBits, VoiceState } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
-import { botDeletedChannels } from '../../lib/botDeletedTracking';
+import { botDeletedChannels, botCreatedChannels } from '../../lib/botDeletedTracking';
 import { sendLog } from '../../lib/botStatus';
 
 const VC_MANAGER_COMMANDS = [
@@ -75,6 +75,7 @@ const event: EventFile = {
 				parent: triggerChannel.parentId,
 				userLimit: 5,
 			});
+			botCreatedChannels.add(newVC.id);
 
 			await member.voice.setChannel(newVC);
 

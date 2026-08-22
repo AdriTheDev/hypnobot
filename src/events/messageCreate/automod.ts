@@ -1,7 +1,8 @@
-import { Message, GuildMember, PermissionFlagsBits } from 'discord.js';
+import { Message, GuildMember, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import type { EventFile } from '../../lib/types';
 import { botDeletedMessages } from '../../lib/botDeletedTracking';
 import { applyPunishment } from '../../lib/moderationActions';
+import { sendModLog } from '../../lib/modUtils';
 
 const WINDOW_MS = 5000;
 const FLOOD_THRESHOLD = 7;
@@ -18,6 +19,20 @@ setInterval(() => {
 		if (now > entry.resetAt) tracker.delete(key);
 	}
 }, CLEANUP_INTERVAL_MS);
+
+async function logDeletedMessages(member: GuildMember, messages: Message[]): Promise<void> {
+	const lines = messages.map((m) => `<#${m.channelId}>: ${m.content ? m.content.slice(0, 200) : '*no text content*'}`);
+
+	const embed = new EmbedBuilder()
+		.setTitle('[AUTO] Deleted Spam Messages')
+		.setColor(0xff6961)
+		.addFields({ name: 'User', value: `${member} (\`${member.id}\`)` })
+		.setDescription(lines.join('\n').slice(0, 4000))
+		.setFooter({ text: `${messages.length} message${messages.length === 1 ? '' : 's'} deleted` })
+		.setTimestamp();
+
+	await sendModLog(member.guild, embed);
+}
 
 async function suspendForSpam(member: GuildMember, reason: string): Promise<void> {
 	const result = await applyPunishment({
@@ -60,6 +75,7 @@ const event: EventFile = {
 			tracker.delete(key);
 			await Promise.all(toDelete.map((m) => m.delete().catch(() => botDeletedMessages.delete(m.id))));
 			await suspendForSpam(member, 'Automod: Cross-channel spam (likely bot)');
+			await logDeletedMessages(member, toDelete);
 			return;
 		}
 

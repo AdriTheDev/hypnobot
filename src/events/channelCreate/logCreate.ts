@@ -3,6 +3,7 @@ import type { EventFile } from '../../lib/types';
 import { prisma } from '../../lib/prisma';
 import { sendLog } from '../../lib/botStatus';
 import { fetchAuditExecutor } from '../../lib/modUtils';
+import { botCreatedChannels } from '../../lib/botDeletedTracking';
 
 const CHANNEL_TYPE_NAMES: Partial<Record<ChannelType, string>> = {
 	[ChannelType.GuildText]: 'Text',
@@ -16,6 +17,8 @@ const CHANNEL_TYPE_NAMES: Partial<Record<ChannelType, string>> = {
 
 const event: EventFile = {
 	async execute(channel: GuildChannel) {
+		if (botCreatedChannels.has(channel.id)) return;
+
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: channel.guild.id } });
 		if (!config?.serverLogChannel) return;
 

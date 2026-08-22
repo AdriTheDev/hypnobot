@@ -71,9 +71,32 @@ const event: EventFile = {
 		if (!changes.length) return;
 
 		const config = await prisma.guildConfig.findUnique({ where: { guildId: newChannel.guild.id } });
+
+		if (newChannel.type === ChannelType.GuildVoice || newChannel.type === ChannelType.GuildStageVoice) {
+			const vc = await prisma.joinToCreateVC.findUnique({ where: { channelId: newChannel.id } });
+			if (vc) {
+				const nameChange = changes.find((c) => c.name === 'Name');
+				if (nameChange && config?.voiceLogChannel) {
+					const renameEmbed = new EmbedBuilder()
+						.setTitle('Join to Create VC Renamed')
+						.setColor(0xfdfd96)
+						.addFields(
+							{ name: 'Channel', value: `${newChannel}`, inline: true },
+							{ name: 'Owner', value: `<@${vc.ownerId}>`, inline: true },
+							{ name: 'Before', value: nameChange.before, inline: true },
+							{ name: 'After', value: nameChange.after, inline: true },
+						)
+						.setTimestamp();
+					await sendLog(newChannel.guild, config.voiceLogChannel, renameEmbed);
+				}
+				return;
+			}
+		}
+
 		if (!config?.serverLogChannel) return;
 
 		const executor = await fetchAuditExecutor(newChannel.guild, AuditLogEvent.ChannelUpdate, newChannel.id);
+		if (executor?.bot) return;
 
 		const embed = new EmbedBuilder()
 			.setTitle('Channel Updated')
