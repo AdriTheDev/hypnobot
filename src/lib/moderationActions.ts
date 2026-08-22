@@ -2,7 +2,6 @@ import { Colors, EmbedBuilder, Guild, GuildMember, Role, User } from 'discord.js
 import ms from 'ms';
 import { prisma } from './prisma';
 import { buildModEmbed, getLinkedAccounts, sendModLog, sendPublicModLog, sendPunishmentDM } from './modUtils';
-import { applyMcModAction } from './mcRcon';
 
 export type PunishmentKind = 'warn' | 'kick' | 'ban' | 'mute' | 'suspend';
 export type ReversalKind = 'unmute' | 'unsuspend' | 'unban';
@@ -23,8 +22,6 @@ export interface AltOutcome {
 	userId: string;
 	status: 'applied' | 'skipped';
 	skipReason?: string;
-	mcResult?: string | null;
-	mcReachable?: boolean;
 	dmSent?: boolean;
 }
 
@@ -46,8 +43,6 @@ export interface ApplyPunishmentResult {
 	failureMessage?: string;
 	embed?: EmbedBuilder;
 	dmSent?: boolean;
-	mcResult?: string | null;
-	mcReachable?: boolean;
 	extra?: Record<string, unknown>;
 	altOutcomes: AltOutcome[];
 }
@@ -68,8 +63,6 @@ export interface ReversePunishmentResult {
 	failureMessage?: string;
 	embed?: EmbedBuilder;
 	dmSent?: boolean;
-	mcResult?: string | null;
-	mcReachable?: boolean;
 	altOutcomes: AltOutcome[];
 }
 
@@ -84,7 +77,6 @@ export interface PermissionCheckParams {
 
 export type PermissionCheckResult = { ok: true } | { ok: false; message: string };
 
-type McAction = 'ban' | 'kick' | 'suspend' | 'unban' | 'unsuspend';
 type DmAction = 'kick' | 'ban' | 'mute' | 'warn' | 'unmute' | 'suspend' | 'unsuspend';
 
 const ACTION_VERB: Record<ModerationActionKind, string> = {
@@ -135,14 +127,6 @@ const VC_DISCONNECT_ACTIONS = new Set<ModerationActionKind>(['mute', 'suspend'])
 
 const MEMBER_REQUIRED_ACTIONS = new Set<ModerationActionKind>(['kick', 'mute', 'suspend', 'unmute', 'unsuspend']);
 
-const MC_ACTION_MAP: Partial<Record<ModerationActionKind, McAction>> = {
-	kick: 'kick',
-	ban: 'ban',
-	suspend: 'suspend',
-	unsuspend: 'unsuspend',
-	unban: 'unban',
-};
-
 const DM_ACTION_MAP: Partial<Record<ModerationActionKind, DmAction>> = {
 	kick: 'kick',
 	ban: 'ban',
@@ -150,14 +134,6 @@ const DM_ACTION_MAP: Partial<Record<ModerationActionKind, DmAction>> = {
 	suspend: 'suspend',
 	unmute: 'unmute',
 	unsuspend: 'unsuspend',
-};
-
-const MC_NOTE: Record<McAction, (name: string) => string> = {
-	kick: (name) => `Also kicked from Minecraft as \`${name}\`.`,
-	ban: (name) => `Also banned from Minecraft as \`${name}\`.`,
-	suspend: (name) => `Also kicked and removed from Minecraft whitelist as \`${name}\`.`,
-	unsuspend: (name) => `Minecraft whitelist restored for \`${name}\`.`,
-	unban: (name) => `Minecraft ban also lifted and whitelist restored for \`${name}\`.`,
 };
 
 function durationLabel(action: ModerationActionKind, durationMs?: number): string | undefined {
@@ -230,12 +206,11 @@ interface ActionOutcome {
 	skipReason?: string;
 	extraFields?: { name: string; value: string; inline?: boolean }[];
 	extra?: Record<string, unknown>;
-	mcAction: McAction | null;
 }
 
 async function performKick(ctx: ActionContext): Promise<ActionOutcome> {
 	await ctx.targetMember!.kick(ctx.reason);
-	return { success: true, mcAction: 'kick' };
+	return { success: true };
 }
 
 async function executeBan(ctx: ActionContext & { deleteMessageSeconds?: number }): Promise<ActionOutcome> {
@@ -253,7 +228,7 @@ async function executeBan(ctx: ActionContext & { deleteMessageSeconds?: number }
 		});
 	}
 
-	return { success: true, mcAction: 'ban' };
+	return { success: true };
 }
 
 async function performBan(ctx: ActionContext): Promise<ActionOutcome> {
@@ -262,7 +237,7 @@ async function performBan(ctx: ActionContext): Promise<ActionOutcome> {
 
 async function performMute(ctx: ActionContext): Promise<ActionOutcome> {
 	await ctx.targetMember!.timeout(ctx.durationMs!, ctx.reason);
-	return { success: true, mcAction: null };
+	return { success: true };
 }
 
 async function performSuspend(ctx: ActionContext): Promise<ActionOutcome> {
@@ -270,7 +245,7 @@ async function performSuspend(ctx: ActionContext): Promise<ActionOutcome> {
 		const existing = await prisma.suspendedUser.findUnique({
 			where: { userId_guildId: { userId: ctx.targetUser.id, guildId: ctx.guild.id } },
 		});
-		if (existing) return { success: false, skipReason: 'That member is already suspended.', mcAction: null };
+		if (existing) return { success: false, skipReason: 'That member is already suspended.' };
 	}
 
 	const roleIds = ctx.targetMember!.roles.cache.filter((r) => r.id !== ctx.guild.id).map((r) => r.id);
@@ -289,35 +264,35 @@ async function performSuspend(ctx: ActionContext): Promise<ActionOutcome> {
 
 	await ctx.targetMember!.roles.set([ctx.suspendedRole!], ctx.reason);
 
-	return { success: true, mcAction: 'suspend' };
+	return { success: true };
 }
 
 async function performUnmute(ctx: ActionContext): Promise<ActionOutcome> {
 	await ctx.targetMember!.timeout(null, ctx.reason);
-	return { success: true, mcAction: null };
+	return { success: true };
 }
 
 async function performUnsuspend(ctx: ActionContext): Promise<ActionOutcome> {
 	const suspension = await prisma.suspendedUser.findUnique({
 		where: { userId_guildId: { userId: ctx.targetUser.id, guildId: ctx.guild.id } },
 	});
-	if (!suspension) return { success: false, skipReason: 'That member is not suspended.', mcAction: null };
+	if (!suspension) return { success: false, skipReason: 'That member is not suspended.' };
 
 	const roleIds = suspension.roleIds.filter((id) => ctx.guild.roles.cache.has(id));
 	await ctx.targetMember!.roles.set(roleIds, ctx.reason);
 	await prisma.suspendedUser.delete({ where: { userId_guildId: { userId: ctx.targetUser.id, guildId: ctx.guild.id } } });
 
-	return { success: true, mcAction: 'unsuspend' };
+	return { success: true };
 }
 
 async function performUnban(ctx: ActionContext): Promise<ActionOutcome> {
 	const ban = await ctx.guild.bans.fetch(ctx.targetUser.id).catch(() => null);
-	if (!ban) return { success: false, skipReason: 'That user is not banned in this server.', mcAction: null };
+	if (!ban) return { success: false, skipReason: 'That user is not banned in this server.' };
 
 	await ctx.guild.bans.remove(ctx.targetUser.id, ctx.reason);
 	await prisma.tempBan.deleteMany({ where: { userId: ctx.targetUser.id, guildId: ctx.guild.id } });
 
-	return { success: true, mcAction: 'unban' };
+	return { success: true };
 }
 
 async function performWarn(ctx: ActionContext): Promise<ActionOutcome> {
@@ -364,13 +339,11 @@ async function performWarn(ctx: ActionContext): Promise<ActionOutcome> {
 				color: 0xff6961,
 			});
 			await Promise.all([sendModLog(ctx.guild, banEmbed), sendPublicModLog(ctx.guild, banEmbed)]);
-			await applyMcModAction(ctx.guild.id, ctx.targetUser.id, 'ban', WARN_AUTOBAN_REASON).catch(() => null);
 		}
 	}
 
 	return {
 		success: true,
-		mcAction: null,
 		extraFields: [
 			{ name: 'Warning ID', value: `\`${warning.id}\``, inline: true },
 			{ name: 'Total Warnings', value: `${warningCount}`, inline: true },
@@ -393,23 +366,12 @@ const REVERSAL_PERFORMERS: Record<ReversalKind, (ctx: ActionContext) => Promise<
 	unban: performUnban,
 };
 
-function buildFooterNotes(input: {
-	mcResult: string | null;
-	mcReachable: boolean;
-	mcAction: McAction | null | undefined;
-	dmSent?: boolean;
-	altOutcomes: AltOutcome[];
-}): string[] {
+function buildFooterNotes(input: { dmSent?: boolean; altOutcomes: AltOutcome[] }): string[] {
 	const notes: string[] = [];
 	if (input.dmSent === false) notes.push('Could not send DM to the user.');
 
 	const appliedAlts = input.altOutcomes.filter((a) => a.status === 'applied');
 	if (appliedAlts.length > 0) notes.push(`Also applied to ${appliedAlts.length} linked alt(s).`);
-
-	if (input.mcAction) {
-		if (input.mcResult) notes.push(MC_NOTE[input.mcAction](input.mcResult));
-		if (!input.mcReachable) notes.push('Could not reach the Minecraft server.');
-	}
 
 	return notes;
 }
@@ -479,17 +441,6 @@ async function cascadeToLinkedAccounts(params: {
 			await altMember.voice.disconnect(altReason).catch(() => null);
 		}
 
-		let mcResult: string | null = null;
-		let mcReachable = true;
-		const mcAction = MC_ACTION_MAP[params.action];
-		if (mcAction) {
-			try {
-				mcResult = await applyMcModAction(params.guild.id, altId, mcAction, altReason);
-			} catch {
-				mcReachable = false;
-			}
-		}
-
 		const altEmbed = buildModEmbed({
 			action: `${params.titlePrefix}${ACTION_ALT_TITLE[params.action]}`,
 			target: altUser,
@@ -513,12 +464,12 @@ async function cascadeToLinkedAccounts(params: {
 			altDmSent = outcome.extra.dmSent as boolean;
 		}
 
-		const altNotes = buildFooterNotes({ mcResult, mcReachable, mcAction, dmSent: altDmSent, altOutcomes: [] });
+		const altNotes = buildFooterNotes({ dmSent: altDmSent, altOutcomes: [] });
 		if (altNotes.length) altEmbed.setFooter({ text: altNotes.join(' ') });
 
 		await Promise.all([sendModLog(params.guild, altEmbed), sendPublicModLog(params.guild, altEmbed)]);
 
-		outcomes.push({ userId: altId, status: 'applied', mcResult, mcReachable, dmSent: altDmSent });
+		outcomes.push({ userId: altId, status: 'applied', dmSent: altDmSent });
 	}
 
 	return outcomes;
@@ -570,17 +521,6 @@ export async function applyPunishment(params: ApplyPunishmentParams): Promise<Ap
 		await targetMember.voice.disconnect(reason).catch(() => null);
 	}
 
-	let mcResult: string | null = null;
-	let mcReachable = true;
-	const mcAction = MC_ACTION_MAP[action];
-	if (mcAction) {
-		try {
-			mcResult = await applyMcModAction(guild.id, targetUser.id, mcAction, reason);
-		} catch {
-			mcReachable = false;
-		}
-	}
-
 	let dmSent: boolean | undefined;
 	const dmAction = DM_ACTION_MAP[action];
 	if (sendDm && dmAction) {
@@ -621,12 +561,12 @@ export async function applyPunishment(params: ApplyPunishmentParams): Promise<Ap
 	});
 	if (outcome.extraFields) embed.addFields(...outcome.extraFields);
 
-	const notes = buildFooterNotes({ mcResult, mcReachable, mcAction, dmSent, altOutcomes });
+	const notes = buildFooterNotes({ dmSent, altOutcomes });
 	if (notes.length) embed.setFooter({ text: notes.join(' ') });
 
 	await Promise.all([sendModLog(guild, embed), sendPublicModLog(guild, embed)]);
 
-	return { ok: true, embed, dmSent, mcResult, mcReachable, altOutcomes, extra: outcome.extra };
+	return { ok: true, embed, dmSent, altOutcomes, extra: outcome.extra };
 }
 
 export async function reversePunishment(params: ReversePunishmentParams): Promise<ReversePunishmentResult> {
@@ -642,17 +582,6 @@ export async function reversePunishment(params: ReversePunishmentParams): Promis
 
 	if (!outcome.success) {
 		return { ok: false, failureMessage: outcome.skipReason ?? `Could not ${ACTION_VERB[action]} that member.`, altOutcomes: [] };
-	}
-
-	let mcResult: string | null = null;
-	let mcReachable = true;
-	const mcAction = MC_ACTION_MAP[action];
-	if (mcAction) {
-		try {
-			mcResult = await applyMcModAction(guild.id, targetUser.id, mcAction, reason);
-		} catch {
-			mcReachable = false;
-		}
 	}
 
 	let dmSent: boolean | undefined;
@@ -684,10 +613,10 @@ export async function reversePunishment(params: ReversePunishmentParams): Promis
 		color: ACTION_COLOR[action],
 	});
 
-	const notes = buildFooterNotes({ mcResult, mcReachable, mcAction, dmSent, altOutcomes });
+	const notes = buildFooterNotes({ dmSent, altOutcomes });
 	if (notes.length) embed.setFooter({ text: notes.join(' ') });
 
 	await Promise.all([sendModLog(guild, embed), sendPublicModLog(guild, embed)]);
 
-	return { ok: true, embed, dmSent, mcResult, mcReachable, altOutcomes };
+	return { ok: true, embed, dmSent, altOutcomes };
 }

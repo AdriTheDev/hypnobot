@@ -126,6 +126,3 @@ No comments unless the reason behind something is genuinely non-obvious. Never a
 | `DEV_MODE`           | No                 | Set `true` to register commands to a single guild      |
 | `DEV_GUILD_ID`       | When DEV_MODE=true | Target guild for dev command registration              |
 | `STATUS_WEBHOOK_URL` | No                 | Discord webhook URL for startup/shutdown/restart logs  |
-| `MC_RCON_HOST`       | For `/whitelist`   | Hostname or IP of the Minecraft server                 |
-| `MC_RCON_PORT`       | No                 | RCON port (default: 25575)                             |
-| `MC_RCON_PASSWORD`   | For `/whitelist`   | RCON password set in server.properties                 |

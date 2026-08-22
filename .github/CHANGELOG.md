@@ -1,5 +1,65 @@
 # Changelog
 
+## [1.5.7] — 2026-08-22
+
+### Added
+- `/membercount` — shows the server's total, human, and bot member counts
+
+### Removed
+- Minecraft whitelist integration — `/whitelist`, RCON mirroring of moderation actions (ban/kick/suspend/unban/unsuspend), and the `MinecraftWhitelist` table have been removed, along with the `rcon-client` dependency and `MC_RCON_*` environment variables
+
+---
+
+## [1.5.6] — 2026-07-16
+
+### Added
+- Bot baiting — a configurable trap channel/message (`/config bot-bait-channel`) that auto-bans anyone who posts in it or reacts to the warning message, with a running "bots baited" counter shown in the message footer
+- JoinGuard — new or suspicious joiners (based on risk score or account age) are automatically assigned configurable roles on join (`/config join-guard-role add/remove`)
+
+### Changed
+- Consolidated scheduler and utility modules internally (suspension/ban expiry pollers merged into `punishmentSchedulers.ts`, presence/status/webhook logic merged into `botStatus.ts`, invite caching and bot-deleted-message tracking consolidated)
+- Deploy workflow fixes
+
+### Fixed
+- Minor bug fixes across moderation and logging
+
+---
+
+## [1.5.5] — 2026-07-13
+
+### Added
+- Meow Counter (`/meow board`, `/meow user`) — tracks meow-like words said in the server with a paginated leaderboard (words/users) and per-user stats
+
+### Fixed
+- Minor bug fixes
+
+---
+
+## [1.5.4] — 2026-07-06
+
+### Changed
+- Moderation commands refactored to share logic via a new `applyPunishment`/`reversePunishment` module (`src/lib/moderationActions.ts`), replacing duplicated per-command logic across ban, kick, mute, suspend, unban, unmute, unsuspend, and warn
+- Voice channels created via join-to-create now receive a message listing the `/vc` manager subcommands when the channel is created
+
+### Fixed
+- Timeout duration no longer exceeds Discord's max timeout when muting
+
+---
+
+## [1.5.3] — 2026-07-03
+
+### Added
+- Join-to-create voice channels (`/config join-to-create`) — members joining a trigger VC get their own channel, managed via `/vc name/user_limit/manager/lock/unlock/kick/ban/unban/ghost/unghost`
+- Moderating a member with a linked Minecraft whitelist entry (ban, kick, suspend, unban, unsuspend) now mirrors the action to the Minecraft server via RCON
+
+### Changed
+- `/alt` moved from the Moderation category to Admin; `/report-ai` moved from Moderation to Utility
+
+### Fixed
+- Docker Compose and Node version fixes; added a connection timeout to RCON
+
+---
+
 ## [1.5.2] — 2026-06-29
 
 ### Added

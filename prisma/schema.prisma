@@ -126,18 +126,6 @@ model SuspendedUser {
   @@id([userId, guildId])
 }
 
-model MinecraftWhitelist {
-  userId            String
-  guildId           String
-  minecraftUsername String
-  minecraftUuid     String
-  addedAt           DateTime @default(now())
-
-  @@id([userId, guildId])
-  @@unique([guildId, minecraftUsername])
-  @@index([guildId])
-}
-
 model AccountLink {
   id      String @id @default(cuid())
   guildId String
